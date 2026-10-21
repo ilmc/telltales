@@ -82,4 +82,3 @@ export function createBus(config, sink, now = () => Date.now()) {
     get activeSource(){return activeSource;}
   };
 }
-

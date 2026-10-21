@@ -49,4 +49,3 @@ test('refresh invalidates elapsed observation without a new emission',()=>{
   bus.dispatch(observation('virtual-heel',15,{at}));
   assert.equal(state.ok,true);nowMs+=31000;bus.refresh();assert.equal(state.ok,false);
 });
-
