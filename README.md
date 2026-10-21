@@ -1,16 +1,42 @@
 # Telltales
 
-An open-source experiment in source-independent observation instruments. This is the **first runnable architectural slice**, not a navigation-certified instrument or a finished framework.
+An open-source experiment in source-independent observation instruments. It is a runnable inclinometer slice, not a navigation-certified instrument.
 
-## Run
+## Run and use
 
-Requires a modern browser and Python 3 (or any static HTTP server). No dependencies, package installation, boat hardware, internet access or private repositories are required.
+Requires a modern browser and Python 3 (or another static HTTP server). No package installation, hardware, or internet access is required.
 
 ```sh
 python3 -m http.server 8000
 ```
 
-Open [http://localhost:8000](http://localhost:8000). Move the −90°…+90° slider; switch to **Fixture** and advance values; emit invalid/missing readings. Both sources drive the same renderer without knowing its implementation. The gauge, numeric value, provenance and unavailable indication update in the browser. Reload to restore configuration defaults. Do not open `index.html` with a `file://` URL: browsers generally block fetching `config.json` there.
+Open [http://localhost:8000](http://localhost:8000), then select **Virtual slider** or **Fixture**. The slider and fixture are simulated sources; their values are never live sensor data.
+
+To record, select a source, choose **Start recording**, create values (including **Emit invalid reading** or **Emit missing reading**), then choose **Stop recording** and **Download recording**. Only actual source emissions while recording are written—no timer-generated observations are invented.
+
+To replay, select **Recording replay**, load a downloaded JSON file, then use Play, Pause, Restart, the seek control, and 1×/2×/4× speed. A replay explicitly shows `REPLAY`, its replay delivery source, effective playback position, and the original producer/source timestamp. It never claims to be live sensor data. Try [the synthetic example](examples/synthetic-heel-recording.json): it is deliberately synthetic test data, not boat data, and contains positive, zero, negative, invalid, and missing readings.
+
+Do not open `index.html` through `file://`: browsers usually block loading `config.json` that way.
+
+## Recording format
+
+The downloaded document is untrusted-input-safe JSON with this stable envelope:
+
+```json
+{
+  "format": "telltales.observation-recording",
+  "version": 1,
+  "createdAt": "2026-10-21T12:00:05.000Z",
+  "observation": { "id": "vessel.heel", "unit": "deg" },
+  "events": [{ "id": "vessel.heel", "unit": "deg", "value": 12,
+    "observedAt": "2026-10-21T12:00:00.000Z", "sourceId": "virtual-heel",
+    "valid": true, "simulated": true }]
+}
+```
+
+Every event preserves its `observedAt`, producer `sourceId`, unit, validity, and simulation provenance. Invalid or missing events have `value: null`, `valid: false`, and a `reason`. The loader rejects malformed envelopes, unsupported versions, unknown producer identities, and type mismatches. Out-of-range values are retained only as invalid/unavailable events; they cannot display as numbers.
+
+`observedAt` is the original producer time. `replay.effectiveTimeMs` is an in-memory offset from the first recording event used for replay position. Browser wall-clock time is used to advance a playing replay, but does not make a paused valid replay event stale. Replay delivery metadata is separate from `sourceId`, retaining the producer identity for rendering and recording.
 
 ## Test
 
@@ -18,29 +44,18 @@ Open [http://localhost:8000](http://localhost:8000). Move the −90°…+90° sl
 node --test test/*.test.mjs
 ```
 
-Requires Node.js 20 or later. Tests cover configuration wiring, units and provenance, bounds, missing/invalid/stale/future samples, source switching and second-adapter substitution.
+Requires Node.js 20 or later. The tests cover configuration wiring, live adapters, recording round trips, invalid/missing events, malformed/version/out-of-range recordings, replay controls and clock semantics, source isolation, and deterministic replay state.
 
-## Architecture exercised
+## Architecture
 
 ```text
-config.json -- validates source IDs, observation identity and renderer binding
-    |
-slider adapter --------\
-                        > typed observation --> source gate / validity --> heel renderer
-fixture adapter -------/
+slider / fixture --> typed observation --> source gate --> recorder --> heel renderer
+                                                ^
+recording file --> validated replay adapter ---+
 ```
 
-- `config.json`: declarative binding. Source `id` values and fixture data can be edited. The first slice requires exactly one slider and one fixture adapter, because the UI exposes one control set for each. `renderer.observation` must match `observation.id`; mismatches fail at startup. Deliberately just one supported measurement and renderer type.
-- `src/core.mjs`: dependency-free observation creation, contract checks, source adapters, source-selection gate and age validity. `Observation` has JSDoc type definition and runtime guards. The sign convention is **negative port / positive starboard**, with zero upright, in degrees; physical heel reference frames still require validation.
-- `src/app.mjs`: DOM presentation only. It does not inspect the device type, derive a measurement or decode protocols. It is driven by source-independent observation and acceptance state.
-- `test/core.test.mjs`: executable contract and substitution tests.
+`config.json` declares source identities, observation identity, and renderer binding. It has one slider, one fixture, and an optional replay delivery source. Configuration fails closed for duplicate identities, invalid source declarations, or invalid renderer/observation bindings.
 
-The virtual slider and deterministic fixture are **simulated**, never actual physical measurements. Both preserve explicit source identity, timestamp, units and validity. Bad readings show an em dash and do not move the gauge. The renderer is refreshed every second so an unchanged reading becomes stale after 30 seconds. Selecting a different source clears the previous reading before the new source starts; emissions from inactive sources are ignored.
+`src/core.mjs` contains the dependency-free contract, adapters, recorder/parser, replay clock, source gate, and age validation. `src/app.mjs` only attaches DOM controls and renders the accepted observation; it does not branch on a source implementation. The heel convention is negative port / positive starboard, in degrees, with zero upright.
 
-## Scope and findings to verify
-
-This slice tests whether the minimal observation boundary survives a second adapter and failures without coupling the renderer to the source. It does **not** prove real sensor support, interoperability with Signal K, recorder/replay fidelity, multi-screen layouts, chart integration or human readability at sea. Do not copy private Boat Optimist data or ACK management records into this repository.
-
-## Contributor starting point
-
-Run the tests, launch the page, inspect `config.json`, then trace `createSource → createBus → render`. Any proposed extension should first identify a concrete failed test/use case. Keep public engineering documentation here; undertaking management and experiment decisions live outside this repository.
+This does not add hardware integrations, storage services, telemetry, or networking. It also does not establish real-world sensor calibration or a seaworthy user-interface assessment.

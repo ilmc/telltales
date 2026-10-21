@@ -1,0 +1,13 @@
+{
+  "format": "telltales.observation-recording",
+  "version": 1,
+  "createdAt": "2026-10-21T12:00:05.000Z",
+  "observation": {"id": "vessel.heel", "unit": "deg"},
+  "events": [
+    {"id":"vessel.heel","unit":"deg","value":18,"observedAt":"2026-10-21T12:00:00.000Z","sourceId":"virtual-heel","valid":true,"simulated":true},
+    {"id":"vessel.heel","unit":"deg","value":0,"observedAt":"2026-10-21T12:00:01.000Z","sourceId":"virtual-heel","valid":true,"simulated":true},
+    {"id":"vessel.heel","unit":"deg","value":-24,"observedAt":"2026-10-21T12:00:02.000Z","sourceId":"virtual-heel","valid":true,"simulated":true},
+    {"id":"vessel.heel","unit":"deg","value":null,"observedAt":"2026-10-21T12:00:03.000Z","sourceId":"virtual-heel","valid":false,"simulated":true,"reason":"Synthetic invalid reading"},
+    {"id":"vessel.heel","unit":"deg","value":null,"observedAt":"2026-10-21T12:00:04.000Z","sourceId":"virtual-heel","valid":false,"simulated":true,"reason":"Synthetic missing observation"}
+  ]
+}
