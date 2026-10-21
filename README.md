@@ -17,7 +17,7 @@ Open [http://localhost:8000](http://localhost:8000). The two panels update indep
 
 Each instrument has its own source selector. Use **Emit invalid reading** or **Emit missing reading** to see that an unavailable SOG does not affect a healthy heel value, and vice versa.
 
-Choose **Start recording**, change either or both controls, then stop and download. The recording contains actual accepted emissions only. Load that JSON under Replay, choose **Recording replay** for one or both instruments, and use Play, Pause, Restart, seek, and 1×/2×/4× speed. Replay retains the original producer timestamp/source and shows a distinct replay delivery source.
+Choose **Start recording**, change either or both controls, then stop and download. The recording contains actual accepted emissions only. Loading that JSON automatically routes both displays to **REPLAY** and restores every recorded instrument at the start position; press **Play**. The source labels make this visible, and selecting a simulated source returns that individual display to simulation. A legacy heel-only recording leaves SOG unavailable in replay rather than inventing a SOG value. Play, Pause, Restart, seek, and 1×/2×/4× speed reconstruct the latest recorded state for each instrument. Replay retains the original producer timestamp/source and shows a distinct replay delivery source.
 
 Do not open `index.html` via `file://`: browsers usually block loading `config.json` that way.
 
