@@ -11,7 +11,7 @@ export function validateConfiguration(config) {
       !Array.isArray(config.sources) || config.sources.length < 2) throw new Error('Invalid configuration or unsupported contract');
   const ids = new Set();
   for (const source of config.sources) {
-    if (!source || typeof source.id !== 'string' || !source.id || ids.has(source.id)) throw new Error('Duplicate/invalid source ID');
+    if (!source || typeof source.id !== 'string' || !source.id.trim() || ids.has(source.id)) throw new Error('Duplicate/invalid source ID');
     ids.add(source.id);
     if (source.type === 'slider') {
       if (!isHeel(source.initial)) throw new Error('Invalid slider initial value');
@@ -19,6 +19,8 @@ export function validateConfiguration(config) {
       if (!Array.isArray(source.samples) || source.samples.length === 0 || !source.samples.every(isHeel)) throw new Error('Invalid fixture samples');
     } else throw new Error('Unknown source type');
   }
+  if (config.sources.filter(source => source.type === 'slider').length !== 1 ||
+      config.sources.filter(source => source.type === 'fixture').length !== 1) throw new Error('Exactly one slider and one fixture source are required');
   if (!ids.has(config.defaultSource)) throw new Error('Default source not found');
   return config;
 }
@@ -80,3 +82,4 @@ export function createBus(config, sink, now = () => Date.now()) {
     get activeSource(){return activeSource;}
   };
 }
+

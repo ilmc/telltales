@@ -30,7 +30,7 @@ slider adapter --------\
 fixture adapter -------/
 ```
 
-- `config.json`: declarative binding. Source `id` values, source type and fixture data can be edited. `renderer.observation` must match `observation.id`; mismatches fail at startup. Deliberately just one supported measurement and renderer type.
+- `config.json`: declarative binding. Source `id` values and fixture data can be edited. The first slice requires exactly one slider and one fixture adapter, because the UI exposes one control set for each. `renderer.observation` must match `observation.id`; mismatches fail at startup. Deliberately just one supported measurement and renderer type.
 - `src/core.mjs`: dependency-free observation creation, contract checks, source adapters, source-selection gate and age validity. `Observation` has JSDoc type definition and runtime guards. The sign convention is **negative port / positive starboard**, with zero upright, in degrees; physical heel reference frames still require validation.
 - `src/app.mjs`: DOM presentation only. It does not inspect the device type, derive a measurement or decode protocols. It is driven by source-independent observation and acceptance state.
 - `test/core.test.mjs`: executable contract and substitution tests.
@@ -44,3 +44,4 @@ This slice tests whether the minimal observation boundary survives a second adap
 ## Contributor starting point
 
 Run the tests, launch the page, inspect `config.json`, then trace `createSource → createBus → render`. Any proposed extension should first identify a concrete failed test/use case. Keep public engineering documentation here; undertaking management and experiment decisions live outside this repository.
+

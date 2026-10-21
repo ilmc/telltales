@@ -9,6 +9,10 @@ test('declarative source and renderer wiring validates; bad wiring is rejected',
   assert.equal(config.renderer.observation,config.observation.id);
   assert.throws(()=>validateConfiguration({...config,renderer:{...config.renderer,observation:'other'}}));
   assert.throws(()=>validateConfiguration({...config,sources:[...config.sources,config.sources[0]]}));
+  assert.throws(()=>validateConfiguration({...config,sources:[config.sources[0],{...config.sources[0],id:'second-slider'}]}));
+  assert.throws(()=>validateConfiguration({...config,sources:[{...config.sources[1],id:' '},config.sources[0]]}));
+  const changed={...config,sources:[{...config.sources[0],id:'helm-slider',initial:12},{...config.sources[1],id:'recorded-fixture',samples:[-12,0,73]}],defaultSource:'recorded-fixture'};
+  assert.equal(validateConfiguration(changed).defaultSource,'recorded-fixture');
 });
 test('typed simulated observation preserves identity units time source and validity',()=>{
   const reading=observation('virtual-heel',-90,{at});
@@ -45,3 +49,4 @@ test('refresh invalidates elapsed observation without a new emission',()=>{
   bus.dispatch(observation('virtual-heel',15,{at}));
   assert.equal(state.ok,true);nowMs+=31000;bus.refresh();assert.equal(state.ok,false);
 });
+
