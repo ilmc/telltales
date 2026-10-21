@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "observation": {
+    "id": "vessel.heel",
+    "unit": "deg",
+    "minimum": -90,
+    "maximum": 90,
+    "reference": "boat roll, zero upright; negative port, positive starboard"
+  },
+  "sources": [
+    {
+      "id": "virtual-heel",
+      "type": "slider",
+      "initial": 0
+    },
+    {
+      "id": "fixture-heel",
+      "type": "fixture",
+      "samples": [
+        -25,
+        0,
+        42,
+        90
+      ]
+    }
+  ],
+  "defaultSource": "virtual-heel",
+  "renderer": {
+    "type": "heel-gauge",
+    "observation": "vessel.heel",
+    "title": "Heel"
+  }
+}
