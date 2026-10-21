@@ -1,5 +1,13 @@
 {
     "version": 2,
+    "capabilities": [
+        {"id":"virtual-heel","name":"Virtual heel source","connection":"in-browser slider","mode":"simulated","implemented":true,"observations":[{"id":"vessel.heel","unit":"deg"}]},
+        {"id":"virtual-sog","name":"Virtual SOG source","connection":"in-browser slider","mode":"simulated","implemented":true,"observations":[{"id":"vessel.speedOverGround","unit":"kn"}]},
+        {"id":"virtual-apparent-wind","name":"Virtual apparent-wind source","connection":"in-browser sliders","mode":"simulated","implemented":true,"observations":[{"id":"environment.wind.apparentSpeed","unit":"kn"},{"id":"environment.wind.apparentAngle","unit":"deg"}]},
+        {"id":"recorded-nmea-rmc","name":"Recorded NMEA RMC speed","connection":"local file","mode":"file-replay","implemented":true,"observations":[{"id":"vessel.speedOverGround","unit":"kn"}]},
+        {"id":"recorded-nmea-mwv","name":"Recorded NMEA MWV apparent wind","connection":"local timestamped file","mode":"file-replay","implemented":true,"observations":[{"id":"environment.wind.apparentSpeed","unit":"kn"},{"id":"environment.wind.apparentAngle","unit":"deg"}]},
+        {"id":"nasa-marine-wind-candidate","name":"NASA Marine wind candidate","connection":"unknown model/interface","mode":"candidate","implemented":false,"observations":[{"id":"environment.wind.apparentSpeed","unit":"kn"},{"id":"environment.wind.apparentAngle","unit":"deg"}]}
+    ],
     "observations": [
         {
             "id": "vessel.heel",
@@ -63,6 +71,7 @@
         {
             "id": "virtual-heel",
             "type": "slider",
+            "capability": "virtual-heel",
             "observation": "vessel.heel",
             "initial": 0
         },
@@ -80,27 +89,37 @@
         {
             "id": "virtual-sog",
             "type": "slider",
+            "capability": "virtual-sog",
             "observation": "vessel.speedOverGround",
             "initial": 0
         },
         {
             "id": "virtual-wind-speed",
             "type": "slider",
+            "capability": "virtual-apparent-wind",
             "observation": "environment.wind.apparentSpeed",
             "initial": 12
         },
         {
             "id": "virtual-wind-angle",
             "type": "slider",
+            "capability": "virtual-apparent-wind",
             "observation": "environment.wind.apparentAngle",
             "initial": 35
         },
         {
             "id": "nmea-file",
             "type": "nmea-replay",
+            "capability": "recorded-nmea-rmc",
             "observations": [
                 "vessel.speedOverGround"
             ]
+        },
+        {
+            "id": "nmea-mwv-file",
+            "type": "nmea-replay",
+            "capability": "recorded-nmea-mwv",
+            "observations": ["environment.wind.apparentSpeed", "environment.wind.apparentAngle"]
         },
         {
             "id": "recording-replay",
@@ -243,6 +262,11 @@
       "widgets": ["primary-speed", "primary-wind"],
       "layout": {"referenceWidth": 1540, "referenceHeight": 720, "slots": {"speed": "main", "heel": "heel", "wind": "wind"}}
     }
+    ,{
+      "id": "wind-focused-hud",
+      "widgets": ["speed-number", "primary-wind"],
+      "layout": {"referenceWidth": 1540, "referenceHeight": 720, "slots": {"speed": "small", "heel": "compact", "wind": "main"}}
+    }
   ],
     "display": {
         "defaultProfile": "speed-focus",
@@ -317,6 +341,14 @@
         "presentations": ["heel-number", "heel-gauge"],
         "widgets": ["primary-speed", "primary-wind"],
         "template": "sailing-hud-wind",
+        "layout": "hud",
+        "showControls": false,
+        "showMetadata": false
+      }
+      ,"wind-focused-hud": {
+        "presentations": ["heel-number"],
+        "widgets": ["speed-number", "primary-wind"],
+        "template": "wind-focused-hud",
         "layout": "hud",
         "showControls": false,
         "showMetadata": false
