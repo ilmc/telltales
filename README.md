@@ -39,6 +39,12 @@ This experiment adds no server, database, serial device, Signal K integration, l
 
 ## Display profiles
 
+## Batch 6: pick, mix and combine
+
+`config.json` now separates raw `observations`, source `sources`, named `presentations`, and display-profile `presentations` arrays. A presentation ID is an instance, so `heel-number` and `heel-gauge` can independently consume `vessel.heel` without DOM or state collisions. Select **Engineering** for composition A (heel numeric + gauge, SOG numeric, derived condition), or **Compact/Wide** for composition B (heel numeric, SOG history + gauge). Switching only reorders/selects presentation instances; it neither resets sources nor replay.
+
+`vessel.movingUnderHeel` is a derived condition, not a sensor. Its declarative `threshold-conjunction` transform requires absolute heel ≥15°, SOG ≥3 kn, valid inputs, input age ≤30 seconds and source-time skew ≤5 seconds. It reports ACTIVE, INACTIVE, or UNAVAILABLE. Derived provenance contains the input source identities and original timestamps. Recordings keep only raw events (v1/v2 remain readable); replay deterministically recomputes the condition. The small history view uses accepted raw events, resets on seek/restart, and breaks paths at unavailable readings.
+
 `config.json` declares the three supported profiles in `display.profiles`: `engineering`, `compact`, and `wide`. Select one with the **Display** menu or open `/?profile=compact` (or `wide`). An unknown URL profile safely falls back to `display.defaultProfile` and reports that choice; it never changes sources, replay position, or recording.
 
 Each profile has an `instruments` array (the placement/order), one of the fixed `layout` values (`engineering`, `compact`, or `wide`), plus boolean `showControls` and `showMetadata` choices. All instruments must be listed exactly once. `engineering` is the default and retains source controls, imports, recording, replay, and full diagnostic metadata. `compact` is intentionally control-free for narrow screens. `wide` puts SOG first and is tuned for a 1540×720 experimental display, with room left by its two-panel composition for a future chart surface; it does not implement a chart.
