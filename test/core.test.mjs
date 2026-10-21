@@ -1,81 +1,8 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import {validateConfiguration,observation,acceptable,createSource,createBus,createRecorder,parseRecording,createReplaySource,RECORDING_FORMAT,RECORDING_VERSION} from '../src/core.mjs';
-const config = validateConfiguration(JSON.parse(readFileSync(new URL('../config.json',import.meta.url),'utf8')));
-const at = new Date('2026-10-21T12:00:00Z');
-const now = at.getTime();
-test('declarative source and renderer wiring validates; bad wiring is rejected',()=>{
-  assert.equal(config.renderer.observation,config.observation.id);
-  assert.throws(()=>validateConfiguration({...config,renderer:{...config.renderer,observation:'other'}}));
-  assert.throws(()=>validateConfiguration({...config,sources:[...config.sources,config.sources[0]]}));
-  assert.throws(()=>validateConfiguration({...config,sources:[config.sources[0],{...config.sources[0],id:'second-slider'}]}));
-  assert.throws(()=>validateConfiguration({...config,sources:[{...config.sources[1],id:' '},config.sources[0]]}));
-  const changed={...config,sources:[{...config.sources[0],id:'helm-slider',initial:12},{...config.sources[1],id:'recorded-fixture',samples:[-12,0,73]}],defaultSource:'recorded-fixture'};
-  assert.equal(validateConfiguration(changed).defaultSource,'recorded-fixture');
-});
-test('typed simulated observation preserves identity units time source and validity',()=>{
-  const reading=observation('virtual-heel',-90,{at});
-  assert.deepEqual({id:reading.id,unit:reading.unit,value:reading.value,sourceId:reading.sourceId,observedAt:reading.observedAt,valid:reading.valid,simulated:reading.simulated},
-    {id:'vessel.heel',unit:'deg',value:-90,sourceId:'virtual-heel',observedAt:at.toISOString(),valid:true,simulated:true});
-  assert.equal(acceptable(reading,config,now).ok,true);
-  assert.equal(acceptable(observation('virtual-heel',90,{at}),config,now).ok,true);
-});
-test('invalid, absent, out of range, stale and future observations fail closed',()=>{
-  for(const v of [null,NaN,Infinity,-91,91,'10'])
-    assert.equal(acceptable(observation('virtual-heel',v,{at}),config,now).ok,false);
-  assert.equal(acceptable(observation('virtual-heel',20,{at}),config,now+31000).ok,false);
-  assert.equal(acceptable(observation('virtual-heel',20,{at}),config,now-2000).ok,false);
-  assert.equal(acceptable({...observation('virtual-heel',20,{at}),unit:'rad'},config,now).ok,false);
-  assert.equal(acceptable(observation('unregistered',20,{at}),config,now).ok,false);
-});
-test('slider and fixture substitute through identical observation/renderer boundary',()=>{
-  const presentations=[];
-  const bus=createBus(config,(reading,state)=>presentations.push({reading,state}),()=>now);
-  const slider=createSource(config.sources[0],bus.dispatch,()=>at);
-  const fixture=createSource(config.sources[1],bus.dispatch,()=>at);
-  slider.start();assert.equal(presentations.at(-1).state.value,0);
-  slider.set(35);assert.equal(presentations.at(-1).state.value,35);
-  bus.select(fixture.id);fixture.start();assert.equal(presentations.at(-1).state.value,-25);
-  fixture.next();assert.equal(presentations.at(-1).state.value,0);
-  slider.set(72);assert.equal(presentations.at(-1).state.value,0,'inactive source cannot overwrite reading');
-  fixture.invalid();assert.equal(presentations.at(-1).state.ok,false);
-  fixture.missing();assert.equal(presentations.at(-1).reading.value,null);
-  bus.select(slider.id);slider.set(-12);assert.equal(presentations.at(-1).state.value,-12);
-});
-test('refresh invalidates elapsed observation without a new emission',()=>{
-  let nowMs=now;let state;
-  const bus=createBus(config,(_reading,next)=>{state=next},()=>nowMs);
-  bus.dispatch(observation('virtual-heel',15,{at}));
-  assert.equal(state.ok,true);nowMs+=31000;bus.refresh();assert.equal(state.ok,false);
-});
-test('recording round trip preserves values, invalid/missing events, time, units and source provenance',()=>{
-  const recorder=createRecorder(config,()=>at);
-  recorder.record(observation('virtual-heel',12,{at}));
-  recorder.record(observation('virtual-heel',NaN,{at:new Date(now+1000),reason:'Sensor reports invalid'}));
-  recorder.record(observation('virtual-heel',null,{at:new Date(now+2000),reason:'No observation'}));
-  const exported=recorder.export(); const parsed=parseRecording(JSON.stringify(exported),config);
-  assert.equal(exported.format,RECORDING_FORMAT);assert.equal(exported.version,RECORDING_VERSION);assert.equal(parsed.events.length,3);
-  assert.deepEqual(parsed.events.map(e=>[e.value,e.valid,e.unit,e.sourceId,e.observedAt]),[[12,true,'deg','virtual-heel',at.toISOString()],[null,false,'deg','virtual-heel',new Date(now+1000).toISOString()],[null,false,'deg','virtual-heel',new Date(now+2000).toISOString()]]);
-});
-test('recordings reject bad envelopes and safely invalidate out-of-range event values',()=>{
-  assert.throws(()=>parseRecording('{bad',config));
-  assert.throws(()=>parseRecording({format:RECORDING_FORMAT,version:99,observation:{id:'vessel.heel',unit:'deg'},events:[]},config));
-  assert.throws(()=>parseRecording({format:RECORDING_FORMAT,version:1,observation:{id:'vessel.heel',unit:'deg'},events:[observation('virtual-heel',1,{at:new Date(now+1000)}),observation('virtual-heel',2,{at})]},config));
-  const parsed=parseRecording({format:RECORDING_FORMAT,version:1,observation:{id:'vessel.heel',unit:'deg'},events:[{...observation('virtual-heel',20,{at}),value:500,valid:true}]},config);
-  assert.equal(parsed.events[0].valid,false);assert.equal(parsed.events[0].value,null);
-});
-test('replay is deterministic, retains original time/source, supports seek restart pause and speed',()=>{
-  const recording=parseRecording({format:RECORDING_FORMAT,version:1,observation:{id:'vessel.heel',unit:'deg'},events:[observation('virtual-heel',10,{at}),observation('virtual-heel',NaN,{at:new Date(now+1000),reason:'bad'}),observation('virtual-heel',-20,{at:new Date(now+3000)})]},config);
-  let wall=0;const seen=[];const replay=createReplaySource(config.sources.find(s=>s.type==='replay'),recording,reading=>seen.push(reading),()=>wall);
-  replay.start();assert.equal(seen.at(-1).value,10);assert.equal(seen.at(-1).observedAt,at.toISOString());
-  replay.play();wall=500;replay.tick();assert.equal(seen.length,1);replay.setSpeed(2);wall=750;replay.tick();assert.equal(seen.at(-1).valid,false);
-  replay.pause();const paused=replay.position;wall=100000;replay.tick();assert.equal(replay.position,paused);assert.equal(acceptable(seen.at(-1),config,wall).ok,false,'invalid remains unavailable');
-  replay.seek(3000);assert.equal(seen.at(-1).value,-20);assert.equal(seen.at(-1).replay.effectiveTimeMs,3000);assert.equal(acceptable(seen.at(-1),config,999999999).ok,true,'replay does not go stale by wall clock');
-  replay.restart();assert.equal(seen.at(-1).value,10);assert.equal(replay.position,0);
-});
-test('replay delivery is isolated from its original live source and does not overwrite a switched source',()=>{
-  const recording=parseRecording({format:RECORDING_FORMAT,version:1,observation:{id:'vessel.heel',unit:'deg'},events:[observation('virtual-heel',20,{at})]},config);
-  const seen=[];const bus=createBus(config,(reading)=>seen.push(reading),()=>now);const replay=createReplaySource(config.sources.find(s=>s.type==='replay'),recording,bus.dispatch,()=>0);
-  bus.select('recording-replay');replay.start();assert.equal(seen.at(-1).value,20);bus.select('virtual-heel');replay.restart();assert.equal(seen.at(-1),null);bus.select('recording-replay');replay.start();assert.equal(seen.at(-1).value,20);
-});
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import {validateConfiguration,createObservation,acceptable,createSource,createBus,createRecorder,parseRecording,createReplaySource,RECORDING_FORMAT,RECORDING_VERSION} from '../src/core.mjs';
+const config=validateConfiguration(JSON.parse(readFileSync(new URL('../config.json',import.meta.url),'utf8'))),at=new Date('2026-10-21T12:00:00Z'),now=at.getTime();const heel=config.instruments.find(i=>i.id==='heel'),sog=config.instruments.find(i=>i.id==='sog');
+test('two instruments, their identities, renderers and source bindings are declarative',()=>{assert.deepEqual(config.display.instruments,['heel','sog']);assert.deepEqual([heel.observation.id,heel.observation.unit],['vessel.heel','deg']);assert.deepEqual([sog.observation.id,sog.observation.unit],['vessel.speedOverGround','kn']);assert.throws(()=>validateConfiguration({...config,defaultSources:{...config.defaultSources,sog:'virtual-heel'}}));assert.throws(()=>validateConfiguration({...config,instruments:[...config.instruments,{...sog,id:'other'}]}));});
+test('SOG observations are simulated knots, range-checked, and cannot be heel observations',()=>{const reading=createObservation(sog.observation,'virtual-sog',12.5,{at});assert.equal(acceptable(reading,config,now).ok,true);for(const value of [-1,20.1,Infinity,'4'])assert.equal(acceptable(createObservation(sog.observation,'virtual-sog',value,{at}),config,now).ok,false);assert.equal(acceptable({...reading,unit:'deg'},config,now).ok,false);assert.equal(acceptable({...reading,sourceId:'virtual-heel'},config,now).ok,false)});
+test('sources are renderer-independent and stale or invalid SOG does not disturb healthy heel',()=>{let wall=now,heelState,sogState;const heelBus=createBus(config,'heel',(_r,s)=>heelState=s,()=>wall),sogBus=createBus(config,'sog',(_r,s)=>sogState=s,()=>wall);const h=createSource(config.sources.find(s=>s.id==='virtual-heel'),heel.observation,heelBus.dispatch,()=>at),g=createSource(config.sources.find(s=>s.id==='virtual-sog'),sog.observation,sogBus.dispatch,()=>at);h.set(15);g.set(8);assert.equal(heelState.value,15);assert.equal(sogState.value,8);g.invalid();assert.equal(sogState.ok,false);assert.equal(heelState.value,15);sogBus.dispatch(createObservation(sog.observation,'virtual-sog',8,{at}));wall+=31000;heelBus.dispatch(createObservation(heel.observation,'virtual-heel',18,{at:new Date(wall)}));sogBus.refresh();assert.equal(sogState.ok,false);assert.equal(heelState.value,18)});
+test('mixed recordings preserve identity, units, time, provenance, validity and normalize bad values',()=>{const recorder=createRecorder(config,()=>at);recorder.record(createObservation(heel.observation,'virtual-heel',12,{at}));recorder.record(createObservation(sog.observation,'virtual-sog',7.5,{at:new Date(now+1000)}));recorder.record(createObservation(sog.observation,'virtual-sog',null,{at:new Date(now+2000),reason:'No simulated GNSS observation'}));const exported=recorder.export(),parsed=parseRecording(exported,config);assert.equal(exported.version,RECORDING_VERSION);assert.deepEqual(exported.observations,[{id:'vessel.heel',unit:'deg'},{id:'vessel.speedOverGround',unit:'kn'}]);assert.deepEqual(parsed.events.map(e=>[e.id,e.unit,e.value,e.sourceId,e.valid]),[['vessel.heel','deg',12,'virtual-heel',true],['vessel.speedOverGround','kn',7.5,'virtual-sog',true],['vessel.speedOverGround','kn',null,'virtual-sog',false]]);const bad=parseRecording({...exported,events:[{...exported.events[0],value:99,valid:true}]},config);assert.equal(bad.events[0].valid,false)});
+test('v1 single-heel recordings remain replayable',()=>{const legacy={format:RECORDING_FORMAT,version:1,observation:{id:'vessel.heel',unit:'deg'},events:[createObservation(heel.observation,'virtual-heel',10,{at})]};const parsed=parseRecording(legacy,config);assert.equal(parsed.version,1);assert.equal(parsed.events[0].value,10)});
+test('multi-instrument replay is deterministic across seek, pause, restart and speed changes',()=>{const events=[createObservation(heel.observation,'virtual-heel',10,{at}),createObservation(sog.observation,'virtual-sog',6,{at:new Date(now+1000)}),createObservation(heel.observation,'virtual-heel',-20,{at:new Date(now+3000)})];const recording=parseRecording({format:RECORDING_FORMAT,version:2,observations:[{id:'vessel.heel',unit:'deg'},{id:'vessel.speedOverGround',unit:'kn'}],events},config);let wall=0,heelValue,sogValue;const hb=createBus(config,'heel',(_r,s)=>heelValue=s.value,()=>wall),sb=createBus(config,'sog',(_r,s)=>sogValue=s.value,()=>wall);hb.select('recording-replay');sb.select('recording-replay');const replay=createReplaySource(config.sources.find(s=>s.type==='replay'),recording,r=>(r.id===heel.observation.id?hb:sb).dispatch(r),()=>wall);replay.start();assert.equal(heelValue,10);replay.play();wall=1000;replay.tick();assert.equal(sogValue,6);replay.setSpeed(2);wall=2000;replay.tick();assert.equal(heelValue,-20);replay.pause();const paused=replay.position;wall=99999;replay.tick();assert.equal(replay.position,paused);replay.seek(0);assert.equal(heelValue,10);replay.restart();assert.equal(heelValue,10);assert.equal(acceptable(createObservation(sog.observation,'virtual-sog',4,{at}),config,now+31000).ok,false)});

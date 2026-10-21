@@ -1,42 +1,50 @@
 # Telltales
 
-An open-source experiment in source-independent observation instruments. It is a runnable inclinometer slice, not a navigation-certified instrument.
+An open-source experiment in source-independent observation instruments. It displays simulated heel and simulated Speed Over Ground (SOG); it is not a navigation-certified instrument.
 
 ## Run and use
 
-Requires a modern browser and Python 3 (or another static HTTP server). No package installation, hardware, or internet access is required.
+Use Python 3 (or another static HTTP server); no packages, hardware, or internet connection are required.
 
 ```sh
 python3 -m http.server 8000
 ```
 
-Open [http://localhost:8000](http://localhost:8000), then select **Virtual slider** or **Fixture**. The slider and fixture are simulated sources; their values are never live sensor data.
+Open [http://localhost:8000](http://localhost:8000). The two panels update independently:
 
-To record, select a source, choose **Start recording**, create values (including **Emit invalid reading** or **Emit missing reading**), then choose **Stop recording** and **Download recording**. Only actual source emissions while recording are written—no timer-generated observations are invented.
+- **Heel** has a simulated slider and a fixture source. It is measured in degrees; negative is port and positive is starboard.
+- **Speed over ground (SOG)** has a simulated 0–20 knot slider. It is explicitly not speed through water and it is not a GNSS measurement—no GNSS hardware is connected.
 
-To replay, select **Recording replay**, load a downloaded JSON file, then use Play, Pause, Restart, the seek control, and 1×/2×/4× speed. A replay explicitly shows `REPLAY`, its replay delivery source, effective playback position, and the original producer/source timestamp. It never claims to be live sensor data. Try [the synthetic example](examples/synthetic-heel-recording.json): it is deliberately synthetic test data, not boat data, and contains positive, zero, negative, invalid, and missing readings.
+Each instrument has its own source selector. Use **Emit invalid reading** or **Emit missing reading** to see that an unavailable SOG does not affect a healthy heel value, and vice versa.
 
-Do not open `index.html` through `file://`: browsers usually block loading `config.json` that way.
+Choose **Start recording**, change either or both controls, then stop and download. The recording contains actual accepted emissions only. Load that JSON under Replay, choose **Recording replay** for one or both instruments, and use Play, Pause, Restart, seek, and 1×/2×/4× speed. Replay retains the original producer timestamp/source and shows a distinct replay delivery source.
 
-## Recording format
+Do not open `index.html` via `file://`: browsers usually block loading `config.json` that way.
 
-The downloaded document is untrusted-input-safe JSON with this stable envelope:
+## Configuration and recording
+
+`config.json` is the intentionally small composition point. It declares two concrete instrument instances, each observation’s identity/unit/range, its renderer, source bindings, defaults, and display order. Sources create observations; renderers only receive their own validated observations.
+
+New exports use the mixed-observation v2 envelope:
 
 ```json
 {
   "format": "telltales.observation-recording",
-  "version": 1,
-  "createdAt": "2026-10-21T12:00:05.000Z",
-  "observation": { "id": "vessel.heel", "unit": "deg" },
-  "events": [{ "id": "vessel.heel", "unit": "deg", "value": 12,
-    "observedAt": "2026-10-21T12:00:00.000Z", "sourceId": "virtual-heel",
-    "valid": true, "simulated": true }]
+  "version": 2,
+  "observations": [
+    {"id": "vessel.heel", "unit": "deg"},
+    {"id": "vessel.speedOverGround", "unit": "kn"}
+  ],
+  "events": [
+    {"id": "vessel.heel", "unit": "deg", "value": 12, "sourceId": "virtual-heel", "observedAt": "2026-10-21T12:00:00.000Z", "valid": true, "simulated": true},
+    {"id": "vessel.speedOverGround", "unit": "kn", "value": 6.5, "sourceId": "virtual-sog", "observedAt": "2026-10-21T12:00:01.000Z", "valid": true, "simulated": true}
+  ]
 }
 ```
 
-Every event preserves its `observedAt`, producer `sourceId`, unit, validity, and simulation provenance. Invalid or missing events have `value: null`, `valid: false`, and a `reason`. The loader rejects malformed envelopes, unsupported versions, unknown producer identities, and type mismatches. Out-of-range values are retained only as invalid/unavailable events; they cannot display as numbers.
+Every event preserves identity, unit, original timestamp, producer source, validity, and simulated provenance. Bad/out-of-range events become unavailable, never displayable values. The parser also accepts the former v1 single-heel envelope (including [the existing synthetic example](examples/synthetic-heel-recording.json)) and normalizes it internally. It rejects unknown identities, units, producers, malformed data, unsupported versions, and non-chronological events.
 
-`observedAt` is the original producer time. `replay.effectiveTimeMs` is an in-memory offset from the first recording event used for replay position. Browser wall-clock time is used to advance a playing replay, but does not make a paused valid replay event stale. Replay delivery metadata is separate from `sourceId`, retaining the producer identity for rendering and recording.
+Replay time is an offset from the recording’s first event. Paused replays are deterministic and their valid observations do not become stale from wall-clock time.
 
 ## Test
 
@@ -44,18 +52,6 @@ Every event preserves its `observedAt`, producer `sourceId`, unit, validity, and
 node --test test/*.test.mjs
 ```
 
-Requires Node.js 20 or later. The tests cover configuration wiring, live adapters, recording round trips, invalid/missing events, malformed/version/out-of-range recordings, replay controls and clock semantics, source isolation, and deterministic replay state.
+Requires Node.js 20 or newer. Tests cover configuration wiring, identity/units/ranges, source isolation and independent freshness, mixed recording round trips, deterministic two-instrument replay, and v1 compatibility.
 
-## Architecture
-
-```text
-slider / fixture --> typed observation --> source gate --> recorder --> heel renderer
-                                                ^
-recording file --> validated replay adapter ---+
-```
-
-`config.json` declares source identities, observation identity, and renderer binding. It has one slider, one fixture, and an optional replay delivery source. Configuration fails closed for duplicate identities, invalid source declarations, or invalid renderer/observation bindings.
-
-`src/core.mjs` contains the dependency-free contract, adapters, recorder/parser, replay clock, source gate, and age validation. `src/app.mjs` only attaches DOM controls and renders the accepted observation; it does not branch on a source implementation. The heel convention is negative port / positive starboard, in degrees, with zero upright.
-
-This does not add hardware integrations, storage services, telemetry, or networking. It also does not establish real-world sensor calibration or a seaworthy user-interface assessment.
+This experiment adds no physical GNSS, OpenCPN, Signal K, telemetry, storage service, or navigation-safety claim.

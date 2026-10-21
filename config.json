@@ -1,37 +1,23 @@
 {
-  "version": 1,
-  "observation": {
-    "id": "vessel.heel",
-    "unit": "deg",
-    "minimum": -90,
-    "maximum": 90,
-    "reference": "boat roll, zero upright; negative port, positive starboard"
-  },
-  "sources": [
+  "version": 2,
+  "instruments": [
     {
-      "id": "virtual-heel",
-      "type": "slider",
-      "initial": 0
+      "id": "heel",
+      "observation": {"id": "vessel.heel", "unit": "deg", "minimum": -90, "maximum": 90, "reference": "boat roll, zero upright; negative port, positive starboard"},
+      "renderer": {"type": "heel-gauge", "title": "Heel"}
     },
     {
-      "id": "fixture-heel",
-      "type": "fixture",
-      "samples": [
-        -25,
-        0,
-        42,
-        90
-      ]
-    },
-    {
-      "id": "recording-replay",
-      "type": "replay"
+      "id": "sog",
+      "observation": {"id": "vessel.speedOverGround", "unit": "kn", "minimum": 0, "maximum": 20, "reference": "speed over ground; not speed through water"},
+      "renderer": {"type": "speed-gauge", "title": "Speed over ground (SOG)"}
     }
   ],
-  "defaultSource": "virtual-heel",
-  "renderer": {
-    "type": "heel-gauge",
-    "observation": "vessel.heel",
-    "title": "Heel"
-  }
+  "sources": [
+    {"id": "virtual-heel", "type": "slider", "instrument": "heel", "initial": 0},
+    {"id": "fixture-heel", "type": "fixture", "instrument": "heel", "samples": [-25, 0, 42, 90]},
+    {"id": "virtual-sog", "type": "slider", "instrument": "sog", "initial": 0},
+    {"id": "recording-replay", "type": "replay", "instruments": ["heel", "sog"]}
+  ],
+  "defaultSources": {"heel": "virtual-heel", "sog": "virtual-sog"},
+  "display": {"instruments": ["heel", "sog"]}
 }
