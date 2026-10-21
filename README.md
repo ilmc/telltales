@@ -10,7 +10,7 @@ Requires a modern browser and Python 3 (or any static HTTP server). No dependenc
 python3 -m http.server 8000
 ```
 
-Open [http://localhost:8000](http://localhost:8000). Move the â90Â°â¦+90Â° slider; switch to **Fixture** and advance values; emit invalid/missing readings. Both sources drive the same renderer without knowing its implementation. The gauge, numeric value, provenance and unavailable indication update in the browser. Reload to restore configuration defaults. Do not open `index.html` with a `file://` URL: browsers generally block fetching `config.json` there.
+Open [http://localhost:8000](http://localhost:8000). Move the −90°…+90° slider; switch to **Fixture** and advance values; emit invalid/missing readings. Both sources drive the same renderer without knowing its implementation. The gauge, numeric value, provenance and unavailable indication update in the browser. Reload to restore configuration defaults. Do not open `index.html` with a `file://` URL: browsers generally block fetching `config.json` there.
 
 ## Test
 
@@ -43,4 +43,4 @@ This slice tests whether the minimal observation boundary survives a second adap
 
 ## Contributor starting point
 
-Run the tests, launch the page, inspect `config.json`, then trace `createSource â createBus â render`. Any proposed extension should first identify a concrete failed test/use case. Keep public engineering documentation here; undertaking management and experiment decisions live outside this repository.
+Run the tests, launch the page, inspect `config.json`, then trace `createSource → createBus → render`. Any proposed extension should first identify a concrete failed test/use case. Keep public engineering documentation here; undertaking management and experiment decisions live outside this repository.
