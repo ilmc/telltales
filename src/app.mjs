@@ -4,7 +4,7 @@ const msg=(type,publisherId,more={})=>({version:TRANSPORT_VERSION,type,publisher
 const text=(id,v)=>id==='vessel.heel'?`${v.toFixed(0)}°`:`${v.toFixed(1)}`;
 // Source cards are generated from observation declarations.  Preserve stable
 // IDs for the legacy controls and give each wind input its own explicit ID.
-const nameWindControls=()=>document.querySelectorAll('.source-control').forEach(x=>{let input=x.querySelector('input[type=range]');if(input?.max==='80')x.id='control-wind-speed';if(input?.min==='-180')x.id='control-wind-angle'});
+const nameWindControls=()=>document.querySelectorAll('.source-control').forEach(x=>{let input=x.querySelector('input[type=range]'),heading=x.querySelector('h2'),label=x.querySelector('label');if(input?.max==='80'){x.id='control-wind-speed';heading.textContent='Apparent wind speed';label.firstChild.textContent='Virtual apparent wind speed: '}if(input?.min==='-180'){x.id='control-wind-angle';heading.textContent='Apparent wind angle (bow-relative)';label.firstChild.textContent='Virtual apparent wind angle: '}});
 setInterval(nameWindControls,20);
 // Wind controls are generated through the same generic source loop as legacy sensors.
 // Give their independently bound cards stable identities once they enter the simulator DOM.
