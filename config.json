@@ -16,6 +16,20 @@
             "reference": "speed over ground; not speed through water"
         },
         {
+            "id": "environment.wind.apparentSpeed",
+            "unit": "kn",
+            "minimum": 0,
+            "maximum": 80,
+            "reference": "apparent wind speed at the vessel, in knots; not true wind speed"
+        },
+        {
+            "id": "environment.wind.apparentAngle",
+            "unit": "deg",
+            "minimum": -180,
+            "maximum": 180,
+            "reference": "apparent wind angle relative to vessel bow: 0 ahead, negative port, positive starboard; not absolute meteorological or true-wind direction"
+        },
+        {
             "id": "vessel.movingUnderHeel",
             "unit": "boolean",
             "kind": "derived",
@@ -70,6 +84,18 @@
             "initial": 0
         },
         {
+            "id": "virtual-wind-speed",
+            "type": "slider",
+            "observation": "environment.wind.apparentSpeed",
+            "initial": 12
+        },
+        {
+            "id": "virtual-wind-angle",
+            "type": "slider",
+            "observation": "environment.wind.apparentAngle",
+            "initial": 35
+        },
+        {
             "id": "nmea-file",
             "type": "nmea-replay",
             "observations": [
@@ -81,13 +107,17 @@
             "type": "replay",
             "observations": [
                 "vessel.heel",
-                "vessel.speedOverGround"
+                "vessel.speedOverGround",
+                "environment.wind.apparentSpeed",
+                "environment.wind.apparentAngle"
             ]
         }
     ],
     "defaultSources": {
         "vessel.heel": "virtual-heel",
-        "vessel.speedOverGround": "virtual-sog"
+        "vessel.speedOverGround": "virtual-sog",
+        "environment.wind.apparentSpeed": "virtual-wind-speed",
+        "environment.wind.apparentAngle": "virtual-wind-angle"
     },
     "presentations": [
         {
@@ -182,6 +212,24 @@
                 },
                 "historyOpacity": 0.8
             }
+        },
+        {
+            "id": "wind-number",
+            "widget": "wind",
+            "inputs": {"speed": "environment.wind.apparentSpeed", "angle": "environment.wind.apparentAngle"},
+            "props": {"mode": "number", "title": "Apparent wind", "showUnits": true, "showAngle": true, "showPortStarboard": true, "speedScale": {"min": 0, "max": 40}, "pointerStyle": "arrow", "maxSkewMs": 5000}
+        },
+        {
+            "id": "wind-dial",
+            "widget": "wind",
+            "inputs": {"speed": "environment.wind.apparentSpeed", "angle": "environment.wind.apparentAngle"},
+            "props": {"mode": "dial", "title": "Apparent wind angle", "showUnits": true, "showAngle": true, "showPortStarboard": true, "speedScale": {"min": 0, "max": 40}, "pointerStyle": "arrow", "maxSkewMs": 5000}
+        },
+        {
+            "id": "primary-wind",
+            "widget": "wind",
+            "inputs": {"speed": "environment.wind.apparentSpeed", "angle": "environment.wind.apparentAngle"},
+            "props": {"mode": "combined", "title": "Apparent wind", "showUnits": true, "showAngle": true, "showPortStarboard": true, "speedScale": {"min": 0, "max": 40}, "pointerStyle": "arrow", "maxSkewMs": 5000}
         }
     ],
   "templates": [
@@ -189,6 +237,11 @@
       "id": "sailing-hud",
       "widgets": ["primary-speed"],
       "layout": {"referenceWidth": 1540, "referenceHeight": 720, "slots": {"speed": "main", "heel": "heel"}}
+    }
+    ,{
+      "id": "sailing-hud-wind",
+      "widgets": ["primary-speed", "primary-wind"],
+      "layout": {"referenceWidth": 1540, "referenceHeight": 720, "slots": {"speed": "main", "heel": "heel", "wind": "wind"}}
     }
   ],
     "display": {
@@ -259,7 +312,15 @@
         "layout": "hud",
         "showControls": false,
         "showMetadata": false
-            }
+            },
+      "sailing-hud-wind": {
+        "presentations": ["heel-number", "heel-gauge"],
+        "widgets": ["primary-speed", "primary-wind"],
+        "template": "sailing-hud-wind",
+        "layout": "hud",
+        "showControls": false,
+        "showMetadata": false
+      }
         }
     }
 }

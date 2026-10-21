@@ -1,0 +1,19 @@
+{
+  "format": "telltales.observation-recording",
+  "version": 2,
+  "createdAt": "2026-10-21T12:00:00.000Z",
+  "observations": [
+    {"id": "environment.wind.apparentSpeed", "unit": "kn"},
+    {"id": "environment.wind.apparentAngle", "unit": "deg"}
+  ],
+  "events": [
+    {"id":"environment.wind.apparentSpeed","unit":"kn","value":12,"observedAt":"2026-10-21T12:00:00.000Z","sourceId":"virtual-wind-speed","valid":true,"simulated":true},
+    {"id":"environment.wind.apparentAngle","unit":"deg","value":-45,"observedAt":"2026-10-21T12:00:00.000Z","sourceId":"virtual-wind-angle","valid":true,"simulated":true},
+    {"id":"environment.wind.apparentSpeed","unit":"kn","value":18,"observedAt":"2026-10-21T12:00:02.000Z","sourceId":"virtual-wind-speed","valid":true,"simulated":true},
+    {"id":"environment.wind.apparentAngle","unit":"deg","value":70,"observedAt":"2026-10-21T12:00:02.000Z","sourceId":"virtual-wind-angle","valid":true,"simulated":true},
+    {"id":"environment.wind.apparentSpeed","unit":"kn","value":null,"observedAt":"2026-10-21T12:00:04.000Z","sourceId":"virtual-wind-speed","valid":false,"simulated":true,"reason":"Sensor reports invalid"},
+    {"id":"environment.wind.apparentAngle","unit":"deg","value":180,"observedAt":"2026-10-21T12:00:04.000Z","sourceId":"virtual-wind-angle","valid":true,"simulated":true},
+    {"id":"environment.wind.apparentSpeed","unit":"kn","value":8,"observedAt":"2026-10-21T12:00:06.000Z","sourceId":"virtual-wind-speed","valid":true,"simulated":true},
+    {"id":"environment.wind.apparentAngle","unit":"deg","value":0,"observedAt":"2026-10-21T12:00:06.000Z","sourceId":"virtual-wind-angle","valid":true,"simulated":true}
+  ]
+}
