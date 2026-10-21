@@ -11,3 +11,7 @@ Reusable Speed Over Ground presentation. `inputs.speed` is required and must bin
 ```
 
 `number` displays the current valid SOG. `history` plots only samples in its declared timestamp window, breaking at unavailable samples. `combined` puts that same transparent history behind the value; the number has a text shadow, never an opaque backing rectangle. Widget scale does not alter sensor validation.
+
+## `sailing-hud` template
+
+`sailing-hud` is the operational 1540 × 720 reference template in `config.json`. It binds `primary-speed` to `vessel.speedOverGround` in the main slot and places independent heel numeric/gauge presentations in the heel slot. Layout belongs to the template, not to the simulator or source adapters. The widget remains viewport-responsive and keeps the graph visible through the transparent number overlay.
