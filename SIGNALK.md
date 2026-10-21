@@ -4,7 +4,7 @@ Telltales has two selectable transports. Direct is the default and retains the b
 
 ## Start locally
 
-Use a Signal K server 2.12.0 instance (`docker compose -f docker-compose.signalk.yml up`) or install `signalk-plugin-telltales-observations` from this repository in a local Signal K server's plugin directory. Enable the plugin in the Signal K admin UI and set a long random `token`. The compose file binds only localhost's development port through Docker's normal published-port settings; do not expose this endpoint on an untrusted network.
+Use the official Signal K server image pinned by digest in `docker-compose.signalk.yml` (`docker compose -f docker-compose.signalk.yml up`) or install `signalk-plugin-telltales-observations` from this repository in a local Signal K server's plugin directory. Enable the plugin in the Signal K admin UI and set a long random `token`. The compose file explicitly binds `127.0.0.1:3000` only; do not change that binding or expose this endpoint on an untrusted network.
 
 Open the simulator with `?view=simulator&mode=signalk&signalkToken=YOUR_TOKEN`, then the full HUD with `?view=hud&template=sailing-hud-full&mode=signalk`. An alternate endpoint can be explicitly supplied as `signalkEndpoint`; the stream defaults to `/signalk/v1/stream?subscribe=none` on that host. Tokens are deliberately not persisted. The simulator engineering page identifies the selected route; the fullscreen HUD contains no setup controls.
 
