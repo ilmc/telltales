@@ -21,6 +21,8 @@ For the wind-enabled composition, open `?view=hud&template=sailing-hud-wind`. It
 
 `BroadcastChannel` (`telltales.observations.v1`) is the explicit current transport seam. Its versioned messages are `observation`, `snapshot-request`, `snapshot`, `heartbeat`, and `shutdown`. Messages are validated against the observation contract before display state changes. Original observation timestamps, source IDs, validity, replay metadata, and provenance are retained.
 
+An optional local Signal K round trip is also available: simulator → authenticated Signal K plugin → Signal K stream → HUD. It is selected with `?mode=signalk`; direct mode remains the default. See [SIGNALK.md](SIGNALK.md) for the pinned local startup, token setup, standard paths, units, provenance, and failure behaviour.
+
 The simulator publishes a snapshot on request and heartbeats while active. A HUD opened later requests a coherent snapshot automatically. Live out-of-order readings cannot replace newer readings; replay events are deliberately allowed to reconstruct an earlier state during seek. A simulator shutdown, or 3.5 seconds without a heartbeat, marks the HUD unavailable. Validity and connectivity remain distinct: an invalid sensor can be connected, and a disconnected producer cannot leave a live-looking value indefinitely. A HUD accepts one publisher identity at a time, rejecting a competing publisher.
 
 `BroadcastChannel` is sufficient for this same-computer, same-origin, same-browser-profile experiment. It is not cross-device telemetry. The small versioned envelope and `createTransportState` boundary are where a WebSocket/network adapter can later be substituted.

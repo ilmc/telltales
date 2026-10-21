@@ -1,0 +1,9 @@
+services:
+  signalk:
+    image: signalk/signalk-server:2.12.0
+    ports: ["3000:3000"]
+    volumes:
+      - ./signalk-plugin-telltales:/home/node/.signalk-node-server/node_modules/signalk-telltales-observations:ro
+      - signalk-data:/home/node/.signalk-node-server
+volumes:
+  signalk-data:
