@@ -48,3 +48,20 @@ The derived **Moving under heel** condition is explicitly marked derived and con
 Use **Save composition** to download a portable, versioned `telltales.composition` JSON file; use **Load composition** to validate and apply one later. A composition contains observation identities, supported presentation types, titles, order and the supported derived thresholds only—it never contains sources, DOM identifiers or executable code. [examples/synthetic-composition.json](examples/synthetic-composition.json) showcases heel numeric, SOG trend, SOG gauge and the derived condition. **Reset** restores the supplied Engineering composition and thresholds; supplied profiles in `config.json` are never overwritten.
 
 Changing a composition does not reset active sources, raw history, recording state, loaded replay, replay position, or playback speed. Recordings retain raw observations only, so v1 and v2 JSON recordings and NMEA replay remain compatible and always recompute derived state deterministically.
+
+## AI-ready speed widgets
+
+The supported public widget catalogue is [WIDGETS.md](WIDGETS.md). A `speed` widget binds `inputs.speed` to a raw `kn` observation and has typed, offline-validated props: `mode` (`number`, `history`, or `combined`), `historySeconds` (1–86400), display-only `scale.min`/`max`, `historyOpacity` (0–1), optional `title`, `showUnits`, and `numericPosition`.
+
+`number` presents current SOG; `history` presents only timestamped samples in its declared window and leaves gaps after invalid readings; `combined` layers the number over the live SVG line without a filled number backing. Its text shadow supports legibility while retaining the graph. Each widget owns its scale/window, so two bindings to the same SOG can show different views safely.
+
+Select **Speed-focus** for the combined SOG widget plus heel number. Select **Instruments-trends** for separate SOG number/trend widgets, heel gauge, and Moving under heel. These are declarative profiles in `config.json`; the small files in `examples/` identify the corresponding template. Both work with virtual controls, the public RMC fixture, and JSON recordings.
+
+Validate configuration offline before opening the app:
+
+```sh
+npm run validate:config
+npm run validate:config -- path/to/config.json
+```
+
+An agent workflow is: read the catalogue and templates; map the request to observation bindings and props; edit configuration; validate it; run `npm test` and `npm run test:browser`; preview in Chromium; then return the exact configuration change and unsupported requests. For example, “show SOG over two minutes behind a large value” maps to `mode:"combined", historySeconds:120`; “show a six-minute trend beside the current SOG” maps to two independent `speed` instances with `history` and `number` modes. Configuration intentionally cannot inject CSS or executable code.

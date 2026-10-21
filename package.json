@@ -1,1 +1,1 @@
-{"name":"telltales","private":true,"type":"module","scripts":{"test":"node --test test/*.test.mjs","test:browser":"playwright test"},"devDependencies":{"@playwright/test":"^1.58.0"}}
+{"name":"telltales","private":true,"type":"module","scripts":{"test":"node --test test/*.test.mjs","test:browser":"playwright test","validate:config":"node scripts/validate-config.mjs"},"devDependencies":{"@playwright/test":"^1.58.0"}}
