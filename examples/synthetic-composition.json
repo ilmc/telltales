@@ -1,0 +1,11 @@
+{
+  "format": "telltales.composition",
+  "version": 1,
+  "presentations": [
+    {"id":"heel-numeric","observation":"vessel.heel","type":"numeric","title":"Heel"},
+    {"id":"sog-trend","observation":"vessel.speedOverGround","type":"history","title":"SOG trend"},
+    {"id":"sog-gauge","observation":"vessel.speedOverGround","type":"gauge","title":"SOG gauge"},
+    {"id":"moving-condition","observation":"vessel.movingUnderHeel","type":"condition","title":"Moving under heel"}
+  ],
+  "derived": {"movingUnderHeel":{"heelThreshold":15,"sogThreshold":3,"maxInputAgeMs":30000,"maxSkewMs":5000}}
+}
