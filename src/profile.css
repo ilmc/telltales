@@ -1,0 +1,12 @@
+/* Fixed presentation treatments for the three supported display profiles. */
+@media (min-width:701px){
+  body[data-profile=wide]{padding:1rem 2rem!important}
+  body[data-profile=wide] main{max-width:1540px!important;min-height:0!important;display:block!important}
+  body[data-profile=wide] .profile-picker{position:static!important;margin-left:auto}
+  body[data-profile=wide] .grid{height:calc(100vh - 142px)!important;grid-template-columns:minmax(0,1.65fr) minmax(330px,1fr)!important;gap:1.5rem!important;align-items:stretch!important}
+  body[data-profile=wide] .instrument{min-height:0!important;margin-top:0!important;padding:1.5rem!important;overflow:hidden}
+  body[data-profile=wide] .readout{font-size:clamp(4.5rem,8vw,8rem)!important;line-height:1!important}
+  body[data-profile=wide] .instrument:not(:first-child) .readout{font-size:clamp(4rem,6vw,6rem)!important}
+  body[data-profile=wide] .gauge{height:76px!important;margin:.9rem 0!important}
+  body[data-profile=wide] .ticks{font-size:.9rem!important}
+}

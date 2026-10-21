@@ -11,3 +11,19 @@ test('instrument workflow: controls, recording, replay and v1 compatibility',asy
   await page.locator('#pause').click();await page.locator('#restart').click();await expect(heel).toContainText('-10 deg');await page.locator('#recording-file').setInputFiles(fixtures+'synthetic-heel-recording.json');await expect(sog).toContainText('—');
   await page.getByRole('button',{name:'Imported NMEA RMC file'}).click();await page.locator('#nmea-file').setInputFiles(fixtures+'synthetic-rmc.nmea');await expect(sog).toContainText('3.2 kn');await page.locator('#play').click();await page.locator('#seek').evaluate(e=>e.value=String(e.max));await page.locator('#seek').dispatchEvent('input');await expect(sog).toContainText('UNAVAILABLE');expect(errors).toEqual([]);
 });
+test('profiles reflow existing observations without resetting them',async({page})=>{
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/?profile=compact');
+  await expect(page.locator('body')).toHaveAttribute('data-profile','compact');await expect(page.locator('#engineering-controls')).toBeHidden();
+  await expect(page.locator('[data-instrument="heel"]')).toContainText('0 deg · UPRIGHT');
+  await page.locator('#profile-select').selectOption('engineering');await expect(page.locator('#engineering-controls')).toBeVisible();
+  await page.locator('#control-heel input[type=range]').fill('-17');await expect(page.locator('[data-instrument="heel"]')).toContainText('-17 deg · PORT');
+  await page.setViewportSize({width:1540,height:720});await page.locator('#profile-select').selectOption('wide');await expect(page.locator('body')).toHaveAttribute('data-profile','wide');await expect(page.locator('#instruments [data-instrument]').first()).toHaveAttribute('data-instrument','sog');await expect(page.locator('[data-instrument="heel"]')).toContainText('-17 deg · PORT');const sogBox=await page.locator('[data-instrument="sog"]').boundingBox(),heelBox=await page.locator('[data-instrument="heel"]').boundingBox();expect(sogBox.width).toBeGreaterThan(heelBox.width);expect(sogBox.height).toBeGreaterThanOrEqual(450);
+  expect(errors).toEqual([]);
+});
+test('unknown URL profile falls back safely',async({page})=>{await page.goto('/?profile=bridge');await expect(page.locator('body')).toHaveAttribute('data-profile','engineering');await expect(page.locator('#profile-message')).toContainText('Unknown profile');});
+test('capture Batch 5 presentation evidence',async({page})=>{
+  await page.setViewportSize({width:1280,height:900});await page.goto('/?profile=engineering');await page.locator('#control-heel input[type=range]').fill('-22');await page.locator('#control-sog input[type=range]').fill('6.4');await page.screenshot({path:'evidence/batch-5/engineering.png',fullPage:true});
+  await page.setViewportSize({width:390,height:844});await page.locator('#profile-select').selectOption('compact');await page.screenshot({path:'evidence/batch-5/compact-mobile.png',fullPage:true});
+  await page.setViewportSize({width:1540,height:720});await page.locator('#profile-select').selectOption('wide');await page.screenshot({path:'evidence/batch-5/wide-1540x720.png'});
+  await page.locator('#profile-select').selectOption('engineering');await page.getByRole('button',{name:'Emit invalid reading'}).nth(1).click();await expect(page.locator('[data-instrument="sog"]')).toContainText('UNAVAILABLE');await page.screenshot({path:'evidence/batch-5/unavailable-reading.png',fullPage:true});
+});

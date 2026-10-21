@@ -36,3 +36,11 @@ npm run test:browser
 Core tests cover configuration, source isolation, recording/replay, v1 compatibility, checksum/status/timestamp/range NMEA handling, and provenance. Playwright runs the actual static application via an HTTP server, captures page/console errors, and covers controls, unavailable states, download/load replay, seeking, v1 replay, and NMEA SOG playback. GitHub Actions runs core and Chromium browser jobs on pushes and pull requests.
 
 This experiment adds no server, database, serial device, Signal K integration, live GNSS, or navigation-safety claim.
+
+## Display profiles
+
+`config.json` declares the three supported profiles in `display.profiles`: `engineering`, `compact`, and `wide`. Select one with the **Display** menu or open `/?profile=compact` (or `wide`). An unknown URL profile safely falls back to `display.defaultProfile` and reports that choice; it never changes sources, replay position, or recording.
+
+Each profile has an `instruments` array (the placement/order), one of the fixed `layout` values (`engineering`, `compact`, or `wide`), plus boolean `showControls` and `showMetadata` choices. All instruments must be listed exactly once. `engineering` is the default and retains source controls, imports, recording, replay, and full diagnostic metadata. `compact` is intentionally control-free for narrow screens. `wide` puts SOG first and is tuned for a 1540×720 experimental display, with room left by its two-panel composition for a future chart surface; it does not implement a chart.
+
+The profiles only present the existing heel and SOG observations. Heel values explicitly state `PORT` for negative values, `STARBOARD` for positive values, and `UPRIGHT` at zero. Status labels distinguish valid simulated observations, NMEA-file readings, JSON replay, and unavailable readings.

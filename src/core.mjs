@@ -10,7 +10,7 @@ const sourceBinds=(spec,id)=>spec?.instrument===id||(['replay','nmea-replay'].in
 const matchingInstrument=(config,reading)=>config.instruments.find(item=>item.observation.id===reading?.id&&item.observation.unit===reading?.unit);
 
 export function validateConfiguration(config){
-  if(!config||config.version!==2||!Array.isArray(config.instruments)||config.instruments.length!==2||!Array.isArray(config.sources)||!config.display?.instruments||!config.defaultSources)throw new Error('Invalid configuration or unsupported contract');
+  if(!config||config.version!==2||!Array.isArray(config.instruments)||config.instruments.length!==2||!Array.isArray(config.sources)||!config.display?.profiles||!config.defaultSources)throw new Error('Invalid configuration or unsupported contract');
   const ids=new Set(),obsIds=new Set();
   for(const item of config.instruments){const o=item?.observation;if(!item||typeof item.id!=='string'||!item.id||ids.has(item.id)||!o||typeof o.id!=='string'||obsIds.has(o.id)||typeof o.unit!=='string'||!finite(o.minimum)||!finite(o.maximum)||o.minimum>=o.maximum||typeof o.reference!=='string'||!item.renderer||!['heel-gauge','speed-gauge'].includes(item.renderer.type)||typeof item.renderer.title!=='string')throw new Error('Invalid instrument declaration');ids.add(item.id);obsIds.add(o.id)}
   const sourceIds=new Set();let replays=0;
@@ -19,7 +19,12 @@ export function validateConfiguration(config){
     else if(spec.type==='fixture'){const item=instrument(config,spec.instrument);if(!item||!Array.isArray(spec.samples)||!spec.samples.length||!spec.samples.every(value=>inRange(item.observation,value)))throw new Error('Invalid fixture source')}
     else if(['replay','nmea-replay'].includes(spec.type)){replays+=spec.type==='replay';if(!Array.isArray(spec.instruments)||!spec.instruments.length||spec.instruments.some(id=>!ids.has(id)))throw new Error('Invalid replay source')}
     else throw new Error('Unknown source type')}
-  if(replays>1||config.display.instruments.length!==config.instruments.length||new Set(config.display.instruments).size!==config.instruments.length||config.display.instruments.some(id=>!ids.has(id)))throw new Error('Invalid display composition');
+  if(replays>1)throw new Error('Invalid replay composition');
+  const profiles=config.display.profiles,profileNames=Object.keys(profiles);
+  if(profileNames.length!==3||!['engineering','compact','wide'].every(name=>profiles[name])||typeof config.display.defaultProfile!=='string'||!profiles[config.display.defaultProfile])throw new Error('Invalid display profile');
+  for(const [name,profile] of Object.entries(profiles)){
+    if(!/^[a-z][a-z0-9-]*$/.test(name)||!profile||!['engineering','compact','wide'].includes(profile.layout)||typeof profile.showControls!=='boolean'||typeof profile.showMetadata!=='boolean'||!Array.isArray(profile.instruments)||profile.instruments.length!==config.instruments.length||new Set(profile.instruments).size!==config.instruments.length||profile.instruments.some(id=>!ids.has(id)))throw new Error('Invalid display profile');
+  }
   for(const item of config.instruments){const id=config.defaultSources[item.id];if(!sourceIds.has(id)||!sourceBinds(source(config,id),item.id))throw new Error('Invalid default source binding')}
   return config;
 }

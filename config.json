@@ -20,5 +20,27 @@
     {"id": "recording-replay", "type": "replay", "instruments": ["heel", "sog"]}
   ],
   "defaultSources": {"heel": "virtual-heel", "sog": "virtual-sog"},
-  "display": {"instruments": ["heel", "sog"]}
+  "display": {
+    "defaultProfile": "engineering",
+    "profiles": {
+      "engineering": {
+        "instruments": ["heel", "sog"],
+        "layout": "engineering",
+        "showControls": true,
+        "showMetadata": true
+      },
+      "compact": {
+        "instruments": ["heel", "sog"],
+        "layout": "compact",
+        "showControls": false,
+        "showMetadata": false
+      },
+      "wide": {
+        "instruments": ["sog", "heel"],
+        "layout": "wide",
+        "showControls": false,
+        "showMetadata": true
+      }
+    }
+  }
 }
