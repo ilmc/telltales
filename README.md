@@ -15,6 +15,8 @@ The HUD is designed around a 1540 × 720 reference viewport and fills its window
 
 For the wind-enabled composition, open `?view=hud&template=sailing-hud-wind`. Its simulator cards provide independent apparent-wind speed and bow-relative-angle sliders plus invalid and missing controls. This is simulated apparent wind only: 0° is ahead, negative is port, positive is starboard, and it is neither a meteorological direction nor true wind. Use `?windMode=number`, `dial`, or `combined` to inspect the configured wind widget variants.
 
+`?view=hud&template=sailing-hud-full` is the declarative 1540×720 full composition: SOG, STW, heel, apparent wind, and depth. STW is an independent simulated knot observation, never a substitute for SOG. Depth is metres with an explicit `REFERENCE UNKNOWN / UNCALIBRATED` label; it does not infer keel offsets, clearance, alarms, tide, or current. The virtual source catalogue also records Amzer'zo's ST60+/SeaTalk1 path as unsupported pending physical-interface verification—no hardware or SeaTalk1 decoder is included.
+
 ## Transport and failure semantics
 
 `BroadcastChannel` (`telltales.observations.v1`) is the explicit current transport seam. Its versioned messages are `observation`, `snapshot-request`, `snapshot`, `heartbeat`, and `shutdown`. Messages are validated against the observation contract before display state changes. Original observation timestamps, source IDs, validity, replay metadata, and provenance are retained.

@@ -23,3 +23,11 @@ Reusable apparent-wind presentation. It requires `inputs.speed` bound to `enviro
 `props.mode` is `number`, `dial`, or `combined`. Optional display props are `title`, `showUnits`, `showAngle`, `showPortStarboard`, `speedScale`, and `pointerStyle` (`arrow` or `needle`). `maxSkewMs` is 0–30000 and defaults to 5000 ms; speed and angle must both be valid, current, and no farther apart than that to form a valid combined wind state. If only one signal is available, the widget shows that individual value where applicable but labels the instrument UNAVAILABLE rather than fabricating or treating a combined state as valid.
 
 `sailing-hud-wind` is the wind-enabled operational template; `sailing-hud` remains unchanged. The simulator provides independent apparent-speed and bow-relative-angle sliders, invalid/missing controls, and uses the same observation transport, snapshot, recorder, and replay contracts as every other raw observation. `examples/synthetic-wind-recording.json` includes port/starboard transitions and an invalid interval.
+
+## `depth`
+
+Reusable depth presentation bound only to `environment.depth` in metres. `mode` is `number`, `gauge`, or `combined`; `scale.min` and `scale.max` are required display-only bounds. Optional `showUnits`, `showReference`, `showScale`, and `referenceLabel` control the presentation. The configured reference is explicitly unknown/uncalibrated. No offsets, clearance, or alarm semantics are supplied.
+
+## STW
+
+STW uses the existing reusable `speed` widget, with `inputs.speed` bound to `vessel.speedThroughWater`. It supports `number`, `history`, and transparent-number-over-history `combined` exactly as SOG does, while retaining the visible `STW` identity.

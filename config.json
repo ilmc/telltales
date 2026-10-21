@@ -3,10 +3,13 @@
     "capabilities": [
         {"id":"virtual-heel","name":"Virtual heel source","connection":"in-browser slider","mode":"simulated","implemented":true,"observations":[{"id":"vessel.heel","unit":"deg"}]},
         {"id":"virtual-sog","name":"Virtual SOG source","connection":"in-browser slider","mode":"simulated","implemented":true,"observations":[{"id":"vessel.speedOverGround","unit":"kn"}]},
+        {"id":"virtual-stw","name":"Virtual STW source","connection":"in-browser slider","mode":"simulated","implemented":true,"observations":[{"id":"vessel.speedThroughWater","unit":"kn"}]},
+        {"id":"virtual-depth","name":"Virtual depth source","connection":"in-browser slider","mode":"simulated","implemented":true,"observations":[{"id":"environment.depth","unit":"m"}]},
         {"id":"virtual-apparent-wind","name":"Virtual apparent-wind source","connection":"in-browser sliders","mode":"simulated","implemented":true,"observations":[{"id":"environment.wind.apparentSpeed","unit":"kn"},{"id":"environment.wind.apparentAngle","unit":"deg"}]},
         {"id":"recorded-nmea-rmc","name":"Recorded NMEA RMC speed","connection":"local file","mode":"file-replay","implemented":true,"observations":[{"id":"vessel.speedOverGround","unit":"kn"}]},
         {"id":"recorded-nmea-mwv","name":"Recorded NMEA MWV apparent wind","connection":"local timestamped file","mode":"file-replay","implemented":true,"observations":[{"id":"environment.wind.apparentSpeed","unit":"kn"},{"id":"environment.wind.apparentAngle","unit":"deg"}]},
         {"id":"nasa-marine-wind-candidate","name":"NASA Marine wind candidate","connection":"unknown model/interface","mode":"candidate","implemented":false,"observations":[{"id":"environment.wind.apparentSpeed","unit":"kn"},{"id":"environment.wind.apparentAngle","unit":"deg"}]}
+        ,{"id":"amzerzo-st60-seaTalk1-candidate","name":"Amzer'zo ST60+ depth and speed candidate","connection":"SeaTalk1 physical interface (verification pending)","mode":"candidate","implemented":false,"observations":[{"id":"environment.depth","unit":"m"},{"id":"vessel.speedThroughWater","unit":"kn"}]}
     ],
     "observations": [
         {
@@ -22,6 +25,20 @@
             "minimum": 0,
             "maximum": 20,
             "reference": "speed over ground; not speed through water"
+        },
+        {
+            "id": "vessel.speedThroughWater",
+            "unit": "kn",
+            "minimum": 0,
+            "maximum": 20,
+            "reference": "speed through water (STW); independent from speed over ground"
+        },
+        {
+            "id": "environment.depth",
+            "unit": "m",
+            "minimum": 0,
+            "maximum": 100,
+            "reference": "depth in metres; depth reference is unknown or uncalibrated"
         },
         {
             "id": "environment.wind.apparentSpeed",
@@ -101,6 +118,20 @@
             "initial": 12
         },
         {
+            "id": "virtual-stw",
+            "type": "slider",
+            "capability": "virtual-stw",
+            "observation": "vessel.speedThroughWater",
+            "initial": 0
+        },
+        {
+            "id": "virtual-depth",
+            "type": "slider",
+            "capability": "virtual-depth",
+            "observation": "environment.depth",
+            "initial": 8
+        },
+        {
             "id": "virtual-wind-angle",
             "type": "slider",
             "capability": "virtual-apparent-wind",
@@ -127,6 +158,8 @@
             "observations": [
                 "vessel.heel",
                 "vessel.speedOverGround",
+                "vessel.speedThroughWater",
+                "environment.depth",
                 "environment.wind.apparentSpeed",
                 "environment.wind.apparentAngle"
             ]
@@ -135,6 +168,8 @@
     "defaultSources": {
         "vessel.heel": "virtual-heel",
         "vessel.speedOverGround": "virtual-sog",
+        "vessel.speedThroughWater": "virtual-stw",
+        "environment.depth": "virtual-depth",
         "environment.wind.apparentSpeed": "virtual-wind-speed",
         "environment.wind.apparentAngle": "virtual-wind-angle"
     },
@@ -169,6 +204,10 @@
             "type": "history",
             "title": "SOG history"
         },
+        {"id":"stw-number","observation":"vessel.speedThroughWater","type":"numeric","title":"Speed through water (STW)"},
+        {"id":"stw-history","observation":"vessel.speedThroughWater","type":"history","title":"STW history"},
+        {"id":"depth-number","observation":"environment.depth","type":"numeric","title":"Depth (reference unknown)"},
+        {"id":"depth-gauge","observation":"environment.depth","type":"gauge","title":"Depth scale"},
         {
             "id": "moving-condition",
             "observation": "vessel.movingUnderHeel",
@@ -232,6 +271,9 @@
                 "historyOpacity": 0.8
             }
         },
+        {"id":"primary-stw","widget":"speed","inputs":{"speed":"vessel.speedThroughWater"},"props":{"mode":"combined","title":"Speed through water (STW)","historySeconds":120,"showUnits":true,"scale":{"min":0,"max":12},"historyOpacity":0.65,"numericPosition":"center"}},
+        {"id":"depth-number","widget":"depth","inputs":{"depth":"environment.depth"},"props":{"mode":"number","title":"Depth","showUnits":true,"showReference":true,"showScale":true,"referenceLabel":"REFERENCE UNKNOWN / UNCALIBRATED","scale":{"min":0,"max":30}}},
+        {"id":"primary-depth","widget":"depth","inputs":{"depth":"environment.depth"},"props":{"mode":"combined","title":"Depth","showUnits":true,"showReference":true,"showScale":true,"referenceLabel":"REFERENCE UNKNOWN / UNCALIBRATED","scale":{"min":0,"max":30}}},
         {
             "id": "wind-number",
             "widget": "wind",
@@ -266,6 +308,11 @@
       "id": "wind-focused-hud",
       "widgets": ["speed-number", "primary-wind"],
       "layout": {"referenceWidth": 1540, "referenceHeight": 720, "slots": {"speed": "small", "heel": "compact", "wind": "main"}}
+    }
+    ,{
+      "id": "sailing-hud-full",
+      "widgets": ["primary-speed", "primary-wind", "primary-depth", "primary-stw"],
+      "layout": {"referenceWidth": 1540, "referenceHeight": 720, "slots": {"speed": "main", "heel": "heel", "wind": "wind", "depth": "depth", "stw": "stw"}}
     }
   ],
     "display": {
@@ -349,6 +396,14 @@
         "presentations": ["heel-number"],
         "widgets": ["speed-number", "primary-wind"],
         "template": "wind-focused-hud",
+        "layout": "hud",
+        "showControls": false,
+        "showMetadata": false
+      }
+      ,"sailing-hud-full": {
+        "presentations": ["heel-number", "heel-gauge", "depth-number", "depth-gauge", "stw-number", "stw-history"],
+        "widgets": ["primary-speed", "primary-wind", "primary-depth", "primary-stw"],
+        "template": "sailing-hud-full",
         "layout": "hud",
         "showControls": false,
         "showMetadata": false
