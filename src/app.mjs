@@ -2,6 +2,10 @@ import{validateConfiguration,createObservation,createSource,createRecorder,parse
 const q=new URLSearchParams(location.search),view=q.get('view')||'simulator',uid=()=>crypto.randomUUID?.()||Math.random().toString(36).slice(2),esc=x=>String(x).replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
 const msg=(type,publisherId,more={})=>({version:TRANSPORT_VERSION,type,publisherId,sentAt:new Date().toISOString(),...more});
 const text=(id,v)=>id==='vessel.heel'?`${v.toFixed(0)}°`:`${v.toFixed(1)}`;
+// Source cards are generated from observation declarations.  Preserve stable
+// IDs for the legacy controls and give each wind input its own explicit ID.
+const nameWindControls=()=>document.querySelectorAll('.source-control').forEach(x=>{let input=x.querySelector('input[type=range]');if(input?.max==='80')x.id='control-wind-speed';if(input?.min==='-180')x.id='control-wind-angle'});
+setInterval(nameWindControls,20);
 // Wind controls are generated through the same generic source loop as legacy sensors.
 // Give their independently bound cards stable identities once they enter the simulator DOM.
 function path(samples,scale){if(!samples.length)return'';let latest=Math.max(...samples.map(x=>x.t)),end=Date.now()-latest<120000?Date.now():latest,first=Math.min(...samples.map(x=>x.t)),window=Math.min(120000,Math.max(1000,end-first)),start=end-window,last=null,out=[];for(const x of samples.filter(x=>x.t>=start)){if(x.v===null){last=null;continue}let px=(x.t-start)/window*100,y=40-(x.v-scale.minimum)/(scale.maximum-scale.minimum)*40;out.push(`${last?'L':'M'}${Math.max(0,Math.min(100,px))},${Math.max(0,Math.min(40,y))}`);last=x}if(out.length===1){let y=out[0].split(',')[1];return`M0,${y} L100,${y}`}return out.join(' ')}

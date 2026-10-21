@@ -13,6 +13,8 @@ Open the simulator at `http://localhost:4173/?view=simulator`, then open the ope
 
 The HUD is designed around a 1540 × 720 reference viewport and fills its window without controls, headers, scrolling, or engineering panels. It combines transparent SOG numerals over the history line with a large heel value and gauge. The simulator owns virtual sources, recording, imports and replay; the HUD only subscribes.
 
+For the wind-enabled composition, open `?view=hud&template=sailing-hud-wind`. Its simulator cards provide independent apparent-wind speed and bow-relative-angle sliders plus invalid and missing controls. This is simulated apparent wind only: 0° is ahead, negative is port, positive is starboard, and it is neither a meteorological direction nor true wind. Use `?windMode=number`, `dial`, or `combined` to inspect the configured wind widget variants.
+
 ## Transport and failure semantics
 
 `BroadcastChannel` (`telltales.observations.v1`) is the explicit current transport seam. Its versioned messages are `observation`, `snapshot-request`, `snapshot`, `heartbeat`, and `shutdown`. Messages are validated against the observation contract before display state changes. Original observation timestamps, source IDs, validity, replay metadata, and provenance are retained.
@@ -27,7 +29,7 @@ JSON recording v1/v2 and NMEA RMC import remain supported. RMC accepts checksumm
 
 ## Templates and widgets
 
-`sailing-hud` is declarative configuration in `config.json`: it declares its widget instance, bindings, reference viewport, and small `main`/`heel` slot contract. Existing public profiles and the `speed` widget remain available. See [WIDGETS.md](WIDGETS.md) for its typed props.
+`sailing-hud` is declarative configuration in `config.json`: it declares its widget instance, bindings, reference viewport, and small `main`/`heel` slot contract. `sailing-hud-wind` extends it with the reusable `wind` widget. Existing public profiles and the `speed` widget remain available. See [WIDGETS.md](WIDGETS.md) for typed props and availability semantics.
 
 ## Verification
 
@@ -38,4 +40,4 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-The browser test opens HUD first, runs simulator controls in a second page, checks snapshot delivery, invalid/missing state, replay/backward seek, publisher timeout, and captures Chromium evidence in `evidence/batch-9/`.
+The browser test opens HUD first, runs simulator controls in a second page, checks snapshot delivery, invalid/missing state, replay/backward seek, publisher timeout, and captures Chromium evidence in `evidence/batch-9/` and `evidence/batch-10/`.
