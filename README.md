@@ -51,6 +51,8 @@ For a smaller composition, use `sailing-hud`. For the wind-enabled composition, 
 
 The synthetic installation fixture is available at `/?view=hud&sensorSession=heel-demo`. It is a presentation-only HUD: setup choices are not controls on that screen. `sensor-groups-demo.html?session=heel-demo&harness=true` is the clearly labelled engineering harness. Both are synthetic only and do not connect to phones, other boats, shore stations, or any remote service.
 
+For the local setup flow, open `/?view=setup&sensorSession=heel-only-demo`. It lists compatible, partial and incompatible community displays for that installation and opens the selected presentation without editing its sensor meanings. The committed fixture shows two differently equipped synthetic boats using the same heel display, plus one boat using degree, radian and qualitative heel displays.
+
 More detail lives in the focused technical documents:
 
 - [Widget catalogue and contracts](WIDGETS.md)

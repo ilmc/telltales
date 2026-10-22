@@ -66,6 +66,12 @@ When evaluating or proposing a behavioural change, please keep the existing proj
 - update documentation when supported behaviour changes;
 - add or update automated coverage for behavioural changes.
 
+### Community display and sensor examples
+
+Community display templates use semantic observation/unit/frame inputs, never a hardware manufacturer, provider identifier, or boat identity. Local installation examples must declare the physical meaning of every channel. Depth requires an explicit `transducer`, `keel`, `waterline`, or `unknown` datum and an offset/calibration that is known or `unknown`; contributors must not imply a datum conversion from an unknown offset. Keep examples privacy-safe and synthetic: do not commit vessel names, registrations, locations, routes, credentials, raw private recordings, or real calibration values.
+
+Use `examples/synthetic-sensor-groups.json` and `SENSOR-GROUPS.md` as the small validated starter convention for heel-only, wind-only and richer inventories. It is an offline contract/example, not an adapter contribution format or a claim that a real device is supported.
+
 The current validation commands are:
 
 ```sh
