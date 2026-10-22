@@ -39,6 +39,22 @@ Evaluation is based on relevance, evidence, safety and maintainability rather th
 
 Questions and disagreements are welcome. If you think a decision is wrong, explain the failure mode or trade-off you see and provide evidence where possible. [GOVERNANCE.md](GOVERNANCE.md) describes final decision authority.
 
+## Default change workflow
+
+For ordinary repository changes, the default path is:
+
+**tracked issue → issue-linked branch → implementation and validation → pull request → independent review → authorised merge → issue closure.**
+
+A request that arrives in a maintainer conversation should not require the maintainer to repeat those mechanics. The implementing agent should first check whether a suitable issue already exists. If it does, use it. If the requested change is substantive and no suitable issue exists, create a concise public issue that captures the agreed problem, scope and acceptance evidence before implementation. Do not create a duplicate merely to satisfy process.
+
+Branches should make the issue relationship obvious, for example `issue-42-short-description` or `fix/42-short-description`. Pull requests should link the governing issue with a closing keyword such as `Closes #42` when the PR is intended to complete it.
+
+The PR should explain the rationale and scope, list the validation actually performed, call out risks or known gaps, and give a reviewer enough context to challenge the change. Use the repository pull-request template rather than treating a passing test suite as the review itself.
+
+Review should be meaningfully independent of authorship. An agent that implemented a change must not present its own second pass as independent approval. Review may be performed by a human or by a genuinely separate reviewer when one is available; the project does not require a particular commercial review bot. If independent review is unavailable, leave that gap explicit rather than inventing it.
+
+Merging is a consequential repository action. An authorised maintainer retains merge authority. An AI agent may execute a routine merge only when that authority has been explicitly delegated for the class of change and the required review and validation are complete. Architecture, governance, release, safety-significant, or otherwise material decisions require human authority.
+
 ## Engineering expectations
 
 When evaluating or proposing a behavioural change, please keep the existing project contracts in mind:
