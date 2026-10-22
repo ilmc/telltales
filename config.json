@@ -291,7 +291,10 @@
             "widget": "wind",
             "inputs": {"speed": "environment.wind.apparentSpeed", "angle": "environment.wind.apparentAngle"},
             "props": {"mode": "combined", "title": "Apparent wind", "showUnits": true, "showAngle": true, "showPortStarboard": true, "speedScale": {"min": 0, "max": 40}, "pointerStyle": "arrow", "maxSkewMs": 5000}
-        }
+        },
+        {"id":"synthetic-sog","widget":"sensor-reading","props":{"binding":"sog","title":"Phone SOG · own vessel"}},
+        {"id":"synthetic-remote-wind","widget":"sensor-reading","props":{"binding":"remoteWind","title":"Other boat · apparent wind"}},
+        {"id":"synthetic-shore-wind","widget":"sensor-reading","props":{"binding":"shoreWind","title":"Shore station · local wind"}}
     ],
   "templates": [
     {
@@ -313,6 +316,11 @@
       "id": "sailing-hud-full",
       "widgets": ["primary-speed", "primary-wind", "primary-depth", "primary-stw"],
       "layout": {"referenceWidth": 1540, "referenceHeight": 720, "slots": {"speed": "main", "heel": "heel", "wind": "wind", "depth": "depth", "stw": "stw"}}
+    }
+    ,{
+      "id": "synthetic-provenance-hud",
+      "widgets": ["synthetic-sog", "synthetic-remote-wind", "synthetic-shore-wind"],
+      "layout": {"referenceWidth": 1540, "referenceHeight": 720, "slots": {"synthetic-sog":"port", "synthetic-remote-wind":"main", "synthetic-shore-wind":"starboard"}}
     }
   ],
     "display": {
@@ -404,6 +412,14 @@
         "presentations": ["heel-number", "heel-gauge", "depth-number", "depth-gauge", "stw-number", "stw-history"],
         "widgets": ["primary-speed", "primary-wind", "primary-depth", "primary-stw"],
         "template": "sailing-hud-full",
+        "layout": "hud",
+        "showControls": false,
+        "showMetadata": false
+      },
+      "synthetic-provenance-hud": {
+        "presentations": [],
+        "widgets": ["synthetic-sog", "synthetic-remote-wind", "synthetic-shore-wind"],
+        "template": "synthetic-provenance-hud",
         "layout": "hud",
         "showControls": false,
         "showMetadata": false

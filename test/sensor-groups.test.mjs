@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {validateSensorCatalog,createSensorSession} from '../src/sensor-groups.mjs';
+import {validateConfiguration} from '../src/core.mjs';
 const fixture=JSON.parse(readFileSync(new URL('../examples/synthetic-sensor-groups.json',import.meta.url),'utf8'));
+const configuration=validateConfiguration(JSON.parse(readFileSync(new URL('../config.json',import.meta.url),'utf8')));
 const clone=()=>structuredClone(fixture);
 const now=Date.parse('2026-10-22T12:00:00Z');
 const sample=(providerId,channelId,observation,unit,frame,value,delta=0)=>({
@@ -16,6 +18,12 @@ test('validates three providers and independent sessions',()=>{
   const bad=clone();bad[key].push(structuredClone(bad[key][0]));
   assert.throws(()=>validateSensorCatalog(bad),/Duplicate/);
  }
+});
+test('the synthetic session selects a declared template and reusable provenance widgets',()=>{
+ const template=configuration.templates.find(x=>x.id===fixture.sessions[0].template);
+ assert.ok(template);
+ assert.deepEqual(template.widgets,['synthetic-sog','synthetic-remote-wind','synthetic-shore-wind']);
+ assert.ok(template.widgets.every(id=>configuration.widgets.find(x=>x.id===id)?.widget==='sensor-reading'));
 });
 test('rejects missing channel and mismatched frame or unit',()=>{
  for(const field of ['channel','provider']){

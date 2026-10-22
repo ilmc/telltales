@@ -20,21 +20,21 @@ test('synthetic multi-origin HUD preserves semantics and switching',async({page}
  await page.getByRole('button',{name:'Send synthetic readings'}).click();
  await expect(page.locator('[data-binding="shoreWind"] .reading')).toContainText('9.2');
  await page.setViewportSize({width:1540,height:720});
- await expect(page.locator('main.board')).toBeVisible();
+ await expect(page.locator('main.sensor-group-hud .sensor-grid')).toBeVisible();
 });
 
 test('opt-in HUD route composes named group without altering legacy templates',async({page})=>{
  await page.setViewportSize({width:1540,height:720});
  await page.goto('/?view=hud&template=sailing-hud-wind&sensorGroup=guest-sailing');
  await expect(page.locator('h1')).toContainText('Multi-origin observations');
- await expect(page.locator('#template')).toHaveText('sailing-hud-wind');
+ await expect(page.locator('#template')).toHaveText('synthetic-provenance-hud');
  await page.getByRole('button',{name:'Send synthetic readings'}).click();
  await expect(page.locator('[data-binding="remoteWind"] .meta')).toContainText('Other boat masthead');
  await expect(page.locator('[data-binding="shoreWind"] .meta')).toContainText('fixed-site');
  await page.screenshot({path:'test-results/sensor-groups-hud-1540x720.png'});
  await page.getByLabel('Sensor group').selectOption('shore-only');
  await expect(page.locator('[data-binding="remoteWind"]')).toBeHidden();
- await expect(page.locator('#template')).toHaveText('sailing-hud-wind');
+ await expect(page.locator('#template')).toHaveText('synthetic-provenance-hud');
  await page.getByRole('button',{name:'Send synthetic readings'}).click();
  await expect(page.locator('[data-binding="shoreWind"] .reading')).toContainText('9.2');
  await page.getByRole('button',{name:'Lose feeds'}).click();

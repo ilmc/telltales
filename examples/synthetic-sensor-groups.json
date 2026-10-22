@@ -107,12 +107,12 @@
   "sessions": [
     {
       "id": "guest",
-      "template": "sailing-hud-wind",
+      "template": "synthetic-provenance-hud",
       "group": "guest-sailing"
     },
     {
       "id": "home",
-      "template": "sailing-hud-wind",
+      "template": "synthetic-provenance-hud",
       "group": "guest-sailing"
     }
   ]

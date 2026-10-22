@@ -1,6 +1,6 @@
 # Synthetic sensor groups (Issue #8, contract slice)
 
-This example is a **local, synthetic contract fixture**, not a functioning network adapter, live phone GNSS input or deployed multi-vessel HUD. It is intentionally separate from legacy `config.json`, which continues to control the existing simulator/HUD and Signal K mapping. The new module `src/sensor-groups.mjs` is exercised by the separate browser page `sensor-groups-demo.html`, but it does not yet drive the production HUD or existing widget catalogue.
+This example is a **local, synthetic contract fixture**, not a functioning network adapter, live phone GNSS input or deployed multi-vessel HUD. Its provider/group/session catalog remains a focused fixture, while the representative `synthetic-provenance-hud` template and reusable `sensor-reading` widgets are declared and validated in `config.json`. Both `sensor-groups-demo.html` and `/?view=hud&sensorGroup=guest-sailing` mount that same template renderer; the latter no longer replaces the configured HUD with fetched standalone markup.
 
 `examples/synthetic-sensor-groups.json` declares three independent origins:
 
@@ -24,6 +24,6 @@ console.log(session.snapshot()); // unavailable until synthetic observations are
 
 ## Current limitations and non-goals
 
-This is the **first contract/test slice** of #8, not completion of its acceptance criteria. The standalone browser demo labels synthetic provenance and offers group switching and feed-loss simulation. No live cross-boat networking, transport authentication, device discovery, remote upload, geospatial transformation, chart integration, physical NASA instrument or production HUD source integration has been implemented here. In particular, do not route the synthetic other-vessel wind through the existing own-vessel apparent-wind dial.
+This completes the local synthetic/template-composition slice of #8. The browser demo labels synthetic provenance and offers group switching and feed-loss simulation. No live cross-boat networking, transport authentication, device discovery, remote upload, geospatial transformation, chart integration or physical NASA instrument has been implemented. In particular, do not route the synthetic other-vessel wind through the existing own-vessel apparent-wind dial.
 
-Before acceptance, integrate the contract with the production HUD as appropriate, verify compatibility and the full CI/browser suite, and collect actual screenshots. Keep the PR open until independently reviewed.
+Keep the PR open until independently reviewed and authorised for merge.

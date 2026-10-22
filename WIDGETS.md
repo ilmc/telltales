@@ -31,3 +31,7 @@ Reusable depth presentation bound only to `environment.depth` in metres. `mode` 
 ## STW
 
 STW uses the existing reusable `speed` widget, with `inputs.speed` bound to `vessel.speedThroughWater`. It supports `number`, `history`, and transparent-number-over-history `combined` exactly as SOG does, while retaining the visible `STW` identity.
+
+## `sensor-reading`
+
+`sensor-reading` is a provenance-preserving, single-value widget used by the synthetic sensor-group template. Its `binding` names a group binding and `title` is supplied by the template configuration. It displays the selected provider/channel, units, reference frame and explicit fallback state. It is intentionally not an own-vessel apparent-wind widget: an `other-vessel` or `fixed-site` value remains a labelled reading and cannot be silently wired into the apparent-wind dial.
