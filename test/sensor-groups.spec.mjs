@@ -1,0 +1,24 @@
+import {test,expect} from '@playwright/test';
+test('synthetic multi-origin HUD preserves semantics and switching',async({page})=>{
+ await page.goto('/sensor-groups-demo.html');
+ await expect(page.locator('.banner')).toContainText('NOT FOR NAVIGATION');
+ await expect(page.locator('[data-binding="sog"] .reading')).toHaveText('—');
+ await page.getByRole('button',{name:'Send synthetic readings'}).click();
+ await expect(page.locator('[data-binding="sog"] .reading')).toContainText('5.6');
+ await expect(page.locator('[data-binding="remoteWind"] .meta')).toContainText('other-vessel');
+ await expect(page.locator('[data-binding="shoreWind"] .meta')).toContainText('fixed-site');
+ await expect(page.locator('[data-binding="remoteWind"] .meta')).not.toContainText('own-vessel');
+ await page.getByRole('button',{name:'Lose feeds'}).click();
+ await expect(page.locator('[data-binding="remoteWind"] .reading')).toHaveText('—');
+ await expect(page.locator('[data-binding="shoreWind"] .meta')).toContainText('UNAVAILABLE');
+ const template=await page.locator('#template').textContent();
+ await page.getByLabel('Sensor group').selectOption('shore-only');
+ await expect(page.locator('[data-binding="sog"]')).toBeHidden();
+ await expect(page.locator('[data-binding="remoteWind"]')).toBeHidden();
+ await expect(page.locator('[data-binding="shoreWind"] .reading')).toHaveText('—');
+ await expect(page.locator('#template')).toHaveText(template);
+ await page.getByRole('button',{name:'Send synthetic readings'}).click();
+ await expect(page.locator('[data-binding="shoreWind"] .reading')).toContainText('9.2');
+ await page.setViewportSize({width:1540,height:720});
+ await expect(page.locator('main.board')).toBeVisible();
+});
