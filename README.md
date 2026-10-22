@@ -70,7 +70,7 @@ AI agents perform much of the repository investigation, implementation, testing,
 
 "AI-led" does not mean unattended or fully autonomous. The repository shows what has actually been implemented and tested; it should not be read as a claim that an AI independently sets the project's purpose, releases software, or has demonstrated reliable autonomous operation without human authority.
 
-See [GOVERNANCE.md](GOVERNANCE.md) for decision authority and [CONTRIBUTING.md](CONTRIBUTING.md) for ways to participate.
+See [GOVERNANCE.md](GOVERNANCE.md) for decision authority, [CONTRIBUTING.md](CONTRIBUTING.md) for participation and change flow, and [AGENTS.md](AGENTS.md) for the default repository instructions used by AI engineering agents.
 
 ## Participate
 
@@ -91,7 +91,7 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-GitHub Actions runs the Node and Chromium suites on pushes and pull requests. Browser tests exercise the two-window transport, replay, unavailable states and reference-size HUD behaviour.
+GitHub Actions runs configuration validation plus the Node and Chromium suites on pushes and pull requests. Browser tests exercise the two-window transport, replay, unavailable states and reference-size HUD behaviour. Routine repository changes are expected to start from a tracked issue, use an issue-linked branch, and arrive through a pull request for review rather than being committed directly to `main`; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Direction, not roadmap
 

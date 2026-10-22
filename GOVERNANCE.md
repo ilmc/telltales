@@ -4,7 +4,7 @@ Telltales is an open-source project engineered and maintained through an **AI-le
 
 ## Decision authority
 
-The repository owner and authorised maintainers retain final authority over project purpose, scope, merges, releases, safety claims and other consequential public decisions.
+The repository owner and authorised maintainers retain final authority over project purpose, scope, merges, releases, safety claims and other consequential public decisions. Routine implementation may be delegated to AI agents, but delegation to implement does not by itself grant authority to approve their own work or make material architecture, governance, release or safety decisions.
 
 AI agents may investigate the repository, propose changes, implement authorised work, run or inspect validation, and explain their reasoning and evidence. They do not independently acquire authority to redefine the project, make external commitments, publish releases, or turn an experiment into a trusted navigation system.
 
@@ -12,7 +12,7 @@ Human direction is therefore part of the system, not an exception to it. Human p
 
 ## How decisions are made
 
-Decisions should be driven by the project's purpose, observed usefulness, technical evidence and the cost of changing direction. The preferred pattern is a focused issue or other durable public requirement, followed by repository inspection, a coherent implementation batch, validation, and a public record of what changed and what remains uncertain.
+Decisions should be driven by the project's purpose, observed usefulness, technical evidence and the cost of changing direction. The default engineering path is a focused tracked issue, an issue-linked branch, a coherent implementation batch with validation, a pull request linked to the issue, independent review, and an authorised merge. The issue is closed when the accepted change actually satisfies it, not merely when implementation starts.
 
 The project distinguishes demonstrated behaviour from ambition. A feature is not treated as supported merely because it is plausible, configured as a candidate, or described as a future possibility. Claims about sensors, protocols, safety, calibration and real-world sailing use should be backed by evidence appropriate to the claim.
 
@@ -46,6 +46,8 @@ Changes should keep behaviour and claims aligned. In particular:
 - treat navigation- or safety-related claims conservatively.
 
 Documentation-only changes should still be checked against the current repository so commands, links and capability claims remain true.
+
+Automated checks are evidence, not a substitute for review. Where repository settings enforce a check or review requirement, the project should describe it as enforced; where they do not, documentation must not imply that the gate exists. An implementing agent must not self-approve while describing that approval as independent review.
 
 ## Changes to governance
 
