@@ -6,6 +6,7 @@ export default defineConfig({
   testDir: './test',
   testMatch: '**/*.spec.mjs',
   timeout: 15000,
+  workers: 1,
   use: {baseURL: `http://127.0.0.1:${port}`, headless: true},
   webServer: {command: 'npm start', port, reuseExistingServer: true}
 });

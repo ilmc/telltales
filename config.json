@@ -294,7 +294,8 @@
         },
         {"id":"synthetic-sog","widget":"sensor-reading","props":{"binding":"sog","title":"Phone SOG · own vessel"}},
         {"id":"synthetic-remote-wind","widget":"sensor-reading","props":{"binding":"remoteWind","title":"Other boat · apparent wind"}},
-        {"id":"synthetic-shore-wind","widget":"sensor-reading","props":{"binding":"shoreWind","title":"Shore station · local wind"}}
+        {"id":"synthetic-shore-wind","widget":"sensor-reading","props":{"binding":"shoreWind","title":"Shore station · local wind"}},
+        {"id":"external-surface","widget":"surface","props":{"title":"External visual surface","channel":"telltales.surface.synthetic.v1","nativeSize":{"width":720,"height":720},"fit":"contain","maxFrameAgeMs":3500}}
     ],
   "templates": [
     {
@@ -321,6 +322,11 @@
       "id": "synthetic-provenance-hud",
       "widgets": ["synthetic-sog", "synthetic-remote-wind", "synthetic-shore-wind"],
       "layout": {"referenceWidth": 1540, "referenceHeight": 720, "slots": {"synthetic-sog":"port", "synthetic-remote-wind":"main", "synthetic-shore-wind":"starboard"}}
+    }
+    ,{
+      "id": "zo-hud-surface",
+      "widgets": ["primary-speed", "primary-wind", "primary-depth", "external-surface"],
+      "layout": {"referenceWidth": 1540, "referenceHeight": 720, "slots": {"speed":"port", "surface":"main", "wind":"starboard-top", "depth":"starboard-bottom"}}
     }
   ],
     "display": {
@@ -420,6 +426,14 @@
         "presentations": [],
         "widgets": ["synthetic-sog", "synthetic-remote-wind", "synthetic-shore-wind"],
         "template": "synthetic-provenance-hud",
+        "layout": "hud",
+        "showControls": false,
+        "showMetadata": false
+      },
+      "zo-hud-surface": {
+        "presentations": ["heel-number", "depth-number", "depth-gauge"],
+        "widgets": ["primary-speed", "primary-wind", "primary-depth", "external-surface"],
+        "template": "zo-hud-surface",
         "layout": "hud",
         "showControls": false,
         "showMetadata": false
