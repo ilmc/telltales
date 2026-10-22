@@ -26,7 +26,7 @@ In **Settings → Rules → Rulesets**, create an active branch ruleset targetin
 
 Use an issue-linked branch with a documentation-only edit, and open a PR. The probe should exercise:
 
-1. **PR gate:** attempt (without force or credentials beyond approved scope) a harmless normal direct push to `main` from an appropriately unprivileged identity; it should be rejected. If only an administrator identity is available and it can bypass rules, label the result *not tested* rather than calling it enforced.
+1. **PR gate:** attempt (without force or credentials beyond approved scope) a harmless normal direct push to `main` from an appropriately unprivileged identity; it should be rejected. If it is accepted, the probe has failed: stop the exercise and restore the resulting change through a reviewed PR before any further testing. If only an administrator identity is available and it can bypass rules, label the result *not tested* rather than calling it enforced.
 2. **CI gate:** leave a check pending or intentionally failing on the probe branch (never sabotage production code or merge the failing change). Verify that GitHub marks merge blocked because the relevant required check has not succeeded.
 3. **Review gate:** verify the PR cannot merge without the configured number of genuine non-author approvals. If the same author account is the only identity available, report this as *not enforceable/testable* rather than self-approving.
 4. **Post-push:** add a harmless commit after approval and confirm stale-review behavior if enabled.
@@ -52,4 +52,4 @@ Complete this table only with observed evidence; leave unverified values as **no
 | Bypasses | Explicit actor list and observed privilege limits | Not verified |
 | Optional bot | Owner approval and harmless PR trial | Not installed/verified |
 
-After administrator testing, update this record with dated, attributable findings and align [GOVERNANCE.md](GOVERNANCE.md) and [CONTRIBUTING.md](CONTRIBUTING.md) to the **actual** enforcement, not the proposed configuration. Close Issue #4 only when its acceptance criteria are genuinely met, or explicitly document remaining limitations and obtain an authorised disposition.
+After administrator testing, update this record with dated, attributable findings and align [GOVERNANCE.md](../GOVERNANCE.md) and [CONTRIBUTING.md](../CONTRIBUTING.md) to the **actual** enforcement, not the proposed configuration. Close Issue #4 only when its acceptance criteria are genuinely met, or explicitly document remaining limitations and obtain an authorised disposition.
