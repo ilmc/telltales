@@ -7,3 +7,7 @@ Templates select widget IDs and named slots at the 1540×720 reference size. `sa
 Sources declare a capability ID. The catalogue distinguishes implemented browser simulation (`virtual-*`), local-file replay (`recorded-nmea-rmc`, `recorded-nmea-mwv`), and the explicitly unimplemented `nasa-marine-wind-candidate`. No physical adapter or discovery is present.
 
 RMC replay provides recorded SOG. MWV replay accepts only `R` apparent-wind sentences in a timestamp envelope: `2026-...Z | $IIMWV,...*CS`. MWV lacks time itself, so unwrapped data is rejected; envelope time is original recorded observation time, while replay scheduling is synthetic playback time. Load `examples/synthetic-mwv.nmea` in the simulator. Change widget props, bindings, source capability IDs, and template slots/sizes in JSON, then validate and preview—no runtime LLM is involved.
+
+## Boat-local installation examples
+
+`examples/synthetic-sensor-groups.json` is intentionally separate from `config.json` so it does not change the legacy simulator, replay, Signal K or two-window HUD path. Its groups are boat/context-local installations, not display layouts. Channels carry typed observation/unit/frame semantics plus installation metadata (for example a depth datum and offset known/unknown). Templates use required and optional semantic inputs, sessions choose one template plus one installation, and compatibility is `available`, `partial`, or `incompatible`. Share generic templates and synthetic definitions; do not publish boat identity, calibration, locations, credentials or secrets by default.
