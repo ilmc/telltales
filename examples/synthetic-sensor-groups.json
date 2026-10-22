@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "providers": [
+    {
+      "id": "phone",
+      "label": "Phone GNSS (synthetic)",
+      "context": "phone",
+      "channels": [
+        {
+          "id": "sog",
+          "observation": "vessel.speedOverGround",
+          "unit": "kn",
+          "frame": "own-vessel"
+        }
+      ]
+    },
+    {
+      "id": "guest-mast",
+      "label": "Other boat masthead (synthetic)",
+      "context": "other-vessel",
+      "channels": [
+        {
+          "id": "apparent",
+          "observation": "environment.wind.apparentSpeed",
+          "unit": "kn",
+          "frame": "other-vessel"
+        }
+      ]
+    },
+    {
+      "id": "shore",
+      "label": "Fixed shore station (synthetic)",
+      "context": "fixed-site",
+      "channels": [
+        {
+          "id": "wind",
+          "observation": "environment.wind.speed",
+          "unit": "kn",
+          "frame": "fixed-site"
+        }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "id": "guest-sailing",
+      "bindings": [
+        {
+          "id": "sog",
+          "observation": "vessel.speedOverGround",
+          "unit": "kn",
+          "frame": "own-vessel",
+          "maxAgeMs": 30000,
+          "candidates": [
+            {
+              "provider": "phone",
+              "channel": "sog"
+            }
+          ]
+        },
+        {
+          "id": "remoteWind",
+          "observation": "environment.wind.apparentSpeed",
+          "unit": "kn",
+          "frame": "other-vessel",
+          "maxAgeMs": 30000,
+          "candidates": [
+            {
+              "provider": "guest-mast",
+              "channel": "apparent"
+            }
+          ]
+        },
+        {
+          "id": "shoreWind",
+          "observation": "environment.wind.speed",
+          "unit": "kn",
+          "frame": "fixed-site",
+          "maxAgeMs": 30000,
+          "candidates": [
+            {
+              "provider": "shore",
+              "channel": "wind"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shore-only",
+      "bindings": [
+        {
+          "id": "shoreWind",
+          "observation": "environment.wind.speed",
+          "unit": "kn",
+          "frame": "fixed-site",
+          "candidates": [
+            {
+              "provider": "shore",
+              "channel": "wind"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "sessions": [
+    {
+      "id": "guest",
+      "template": "sailing-hud-wind",
+      "group": "guest-sailing"
+    },
+    {
+      "id": "home",
+      "template": "sailing-hud-wind",
+      "group": "guest-sailing"
+    }
+  ]
+}
