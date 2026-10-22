@@ -1,43 +1,88 @@
 # Telltales
 
-An open-source sailing-observation experiment, not a navigation instrument.
+Telltales is an open-source experiment in **useful, configurable sailing instrumentation and telemetry displays**: reusable widgets composed into displays, fed by explicit observation contracts and open data interfaces.
 
-## Two-window quick start
+The immediate target is a 1540 × 720 sailing HUD used in a separate browser window from its simulator. The broader idea is to make instruments, layouts and data sources replaceable without turning the display into a protocol-specific or boat-specific application.
+
+Telltales is experimental software, **not a navigation instrument**. It does not replace required or trusted navigation equipment.
+
+![Telltales full 1540 × 720 HUD showing SOG, STW, heel, apparent wind and depth](evidence/batch-11/full-available-1540x720.png)
+
+## What works today
+
+The repository currently demonstrates:
+
+- a fullscreen-oriented 1540 × 720 HUD and separate engineering/simulator window;
+- reusable speed, apparent-wind and depth widgets plus heel presentations;
+- simulated SOG, STW, heel, apparent wind and depth observations;
+- recording and replay, including synthetic JSON recordings and NMEA RMC/MWV file import;
+- versioned same-browser transport using `BroadcastChannel`, with snapshots, heartbeat and failure handling;
+- an optional local Signal K round trip while keeping widgets transport-independent;
+- declarative observations, sources, widgets, templates and display profiles in `config.json`;
+- automated Node contract tests and Chromium browser coverage.
+
+The full HUD displays SOG, STW, heel, apparent wind and depth. Depth is deliberately labelled with an unknown/uncalibrated reference rather than implying a keel, surface or transducer datum that has not been established. The committed virtual sources and example recordings are simulation/test inputs, not claims of live boat hardware support.
+
+## Try it
+
+Telltales uses Node.js for local development and tests.
 
 ```sh
 npm ci
 npm start
 ```
 
-The development server is a small dependency-free Node.js static server, deliberately using the same Node toolchain as the application tests. It binds to `127.0.0.1:4173` by default; set `HOST` or `PORT` only when you intentionally need a different local binding.
+Open the simulator:
 
-Open the simulator at `http://localhost:4173/?view=simulator`, then open the operational display in a separate browser window at `http://localhost:4173/?view=hud&template=sailing-hud`. Either order works. Select F11, or use the simulator's user-initiated **Fullscreen** button, to enter browser fullscreen; browsers may require that interaction.
+```text
+http://localhost:4173/?view=simulator
+```
 
-The HUD is designed around a 1540 × 720 reference viewport and fills its window without controls, headers, scrolling, or engineering panels. It combines transparent SOG numerals over the history line with a large heel value and gauge. The simulator owns virtual sources, recording, imports and replay; the HUD only subscribes.
+Then open the full sailing HUD in a separate browser window:
 
-For the wind-enabled composition, open `?view=hud&template=sailing-hud-wind`. Its simulator cards provide independent apparent-wind speed and bow-relative-angle sliders plus invalid and missing controls. This is simulated apparent wind only: 0° is ahead, negative is port, positive is starboard, and it is neither a meteorological direction nor true wind. Use `?windMode=number`, `dial`, or `combined` to inspect the configured wind widget variants.
+```text
+http://localhost:4173/?view=hud&template=sailing-hud-full
+```
 
-`?view=hud&template=sailing-hud-full` is the declarative 1540×720 full composition: SOG, STW, heel, apparent wind, and depth. STW is an independent simulated knot observation, never a substitute for SOG. Depth is metres with an explicit `REFERENCE UNKNOWN / UNCALIBRATED` label; it does not infer keel offsets, clearance, alarms, tide, or current. The virtual source catalogue also records Amzer'zo's ST60+/SeaTalk1 path as unsupported pending physical-interface verification—no hardware or SeaTalk1 decoder is included.
+The server binds to `127.0.0.1:4173` by default. The simulator owns virtual inputs, imports, recording and replay; the HUD subscribes to observations and contains no engineering controls.
 
-## Transport and failure semantics
+For a smaller composition, use `sailing-hud`. For the wind-enabled composition, use `sailing-hud-wind`. Browser fullscreen can be entered with F11 or the simulator's user-initiated **Fullscreen** action where supported.
 
-`BroadcastChannel` (`telltales.observations.v1`) is the explicit current transport seam. Its versioned messages are `observation`, `snapshot-request`, `snapshot`, `heartbeat`, and `shutdown`. Messages are validated against the observation contract before display state changes. Original observation timestamps, source IDs, validity, replay metadata, and provenance are retained.
+More detail lives in the focused technical documents:
 
-An optional local Signal K round trip is also available: simulator → authenticated Signal K plugin → Signal K stream → HUD. It is selected with `?mode=signalk`; direct mode remains the default. See [SIGNALK.md](SIGNALK.md) for the pinned local startup, token setup, standard paths, units, provenance, and failure behaviour.
+- [Widget catalogue and contracts](WIDGETS.md)
+- [Configuration and templates](CONFIGURATION.md)
+- [Signal K development route](SIGNALK.md)
 
-The simulator publishes a snapshot on request and heartbeats while active. A HUD opened later requests a coherent snapshot automatically. Live out-of-order readings cannot replace newer readings; replay events are deliberately allowed to reconstruct an earlier state during seek. A simulator shutdown, or 3.5 seconds without a heartbeat, marks the HUD unavailable. Validity and connectivity remain distinct: an invalid sensor can be connected, and a disconnected producer cannot leave a live-looking value indefinitely. A HUD accepts one publisher identity at a time, rejecting a competing publisher.
+## Why Telltales exists
 
-`BroadcastChannel` is sufficient for this same-computer, same-origin, same-browser-profile experiment. It is not cross-device telemetry. The small versioned envelope and `createTransportState` boundary are where a WebSocket/network adapter can later be substituted.
+Small-boat instrumentation often mixes concerns that are easier to change when kept separate: where a value came from, what it means, how it is transformed, how it is displayed, and how the display is arranged for a particular screen.
 
-## Imports and compatibility
+Telltales explores a deliberately small set of seams between those concerns. A display widget should not need to know whether an observation came from a simulator, a recording, Signal K or a future physical adapter. Configuration should make bindings and layout inspectable. Replay and explicit provenance should make it possible to test behaviour before trusting new integrations.
 
-JSON recording v1/v2 and NMEA RMC import remain supported. RMC accepts checksummed `$GPRMC`/`$GNRMC` file data and maps field 7 to SOG in knots. Replay preserves original time and provenance. JSON replay can drive both instruments; NMEA replay drives SOG only. The committed examples are synthetic.
+The current sailing HUD is the proving ground for those ideas. Reuse beyond that is a direction to be earned through useful examples and evidence, not a promise of a generic framework or a fixed roadmap.
 
-## Templates and widgets
+## Development model
 
-`sailing-hud` is declarative configuration in `config.json`: it declares its widget instance, bindings, reference viewport, and small `main`/`heel` slot contract. `sailing-hud-wind` extends it with the reusable `wind` widget. Existing public profiles and the `speed` widget remain available. See [WIDGETS.md](WIDGETS.md) for typed props and availability semantics.
+Telltales is intentionally **AI-led, with human direction and oversight**.
+
+AI agents perform much of the repository investigation, implementation, testing, documentation and maintenance work. Humans provide purpose, real-world evidence, constraints and review; retain authority over consequential decisions; and can challenge or redirect the work. The project values working software, accurate claims and useful evidence over novelty in how the work is produced.
+
+"AI-led" does not mean unattended or fully autonomous. The repository shows what has actually been implemented and tested; it should not be read as a claim that an AI independently sets the project's purpose, releases software, or has demonstrated reliable autonomous operation without human authority.
+
+See [GOVERNANCE.md](GOVERNANCE.md) for decision authority and [CONTRIBUTING.md](CONTRIBUTING.md) for ways to participate.
+
+## Participate
+
+Useful outside input is welcome, especially bug reports, feature/problem statements, test results from different browsers or displays, sailing-domain corrections, integration evidence, and careful review of technical or product assumptions.
+
+The normal starting point is a [GitHub issue](https://github.com/ilmc/telltales/issues). Describe what you observed or want to achieve, the relevant environment or data source, and any evidence that helps reproduce or evaluate it. You can also review an existing issue or change and challenge a decision with specific technical or real-world reasoning.
+
+Conventional human-authored implementation is not the project's intended development path. That does not make code contributions unwelcome as evidence: if you already have a patch or prototype, it can help make a problem concrete, but maintainers may reproduce, adapt or replace it through the AI-led workflow rather than merge it as written. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Verification
+
+The repository's current checks are:
 
 ```sh
 npm run validate:config
@@ -46,4 +91,10 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-The browser test opens HUD first, runs simulator controls in a second page, checks snapshot delivery, invalid/missing state, replay/backward seek, publisher timeout, and captures Chromium evidence in `evidence/batch-9/` and `evidence/batch-10/`.
+GitHub Actions runs the Node and Chromium suites on pushes and pull requests. Browser tests exercise the two-window transport, replay, unavailable states and reference-size HUD behaviour.
+
+## Direction, not roadmap
+
+Near-term work is expected to stay anchored in useful sailing instrumentation: better evidence from real sources, additional interchangeable adapters and widgets where justified, and layouts that remain understandable and testable. Candidate capabilities in `config.json` are explicitly candidates; their presence is not a delivery commitment.
+
+The project is MIT licensed. See [LICENSE](LICENSE).
