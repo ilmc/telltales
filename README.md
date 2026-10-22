@@ -53,6 +53,10 @@ The synthetic installation fixture is available at `/?view=hud&sensorSession=hee
 
 The opt-in external-surface demonstration is also synthetic only: open `/?view=surface-fixture`, `/?view=hud&template=zo-hud-surface`, and the simulator in separate windows. It demonstrates frame lifecycle and composition beneath an overlay dial; it is not a charting or navigation system.
 
+For the local setup flow, open `/?view=setup&sensorSession=heel-only-demo`. It lists compatible, partial and incompatible community displays for that installation and opens the selected presentation without editing its sensor meanings. The committed fixture shows two differently equipped synthetic boats using the same heel display, plus one boat using degree, radian and qualitative heel displays.
+
+To define a real boat’s sensor meanings locally without a settings editor, copy `examples/local-boat-profile.example.json` outside the repository and validate it with `node scripts/validate-boat-profile.mjs /path/to/boat-profile.json`. It is a local-only, schema-validated authoring artifact; Telltales does not import it into a live adapter or transmit it anywhere.
+
 More detail lives in the focused technical documents:
 
 - [Widget catalogue and contracts](WIDGETS.md)

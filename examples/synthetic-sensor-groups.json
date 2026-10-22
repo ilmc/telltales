@@ -8,7 +8,8 @@
       {"id":"wind","observation":"environment.wind.apparentSpeed","unit":"kn","frame":"own-vessel","installation":{"mount":"masthead","calibration":"unknown"}}
     ]},
     {"id":"wind-only","label":"Wind-only boat (synthetic)","context":"own-vessel","channels":[{"id":"wind","observation":"environment.wind.apparentSpeed","unit":"kn","frame":"own-vessel","installation":{"mount":"masthead","calibration":"unknown"}}]},
-    {"id":"other-boat","label":"Other boat masthead (synthetic)","context":"other-vessel","channels":[{"id":"wind","observation":"environment.wind.apparentSpeed","unit":"kn","frame":"other-vessel","installation":{"mount":"masthead"}}]}
+    {"id":"other-boat","label":"Other boat masthead (synthetic)","context":"other-vessel","channels":[{"id":"wind","observation":"environment.wind.apparentSpeed","unit":"kn","frame":"other-vessel","installation":{"mount":"masthead"}}]},
+    {"id":"heel-only","label":"Compact boat inclinometer (synthetic)","context":"own-vessel","channels":[{"id":"heel-inclinometer","observation":"vessel.heel","unit":"deg","frame":"own-vessel","installation":{"mount":"companionway bulkhead","calibration":"known","offset":"known"}}]}
   ],
   "groups": [
     {"id":"demo-boat","bindings":[
@@ -18,7 +19,8 @@
       {"id":"wind","observation":"environment.wind.apparentSpeed","unit":"kn","frame":"own-vessel","candidates":[{"provider":"boat","channel":"wind"}]}
     ]},
     {"id":"wind-only-boat","bindings":[{"id":"wind","observation":"environment.wind.apparentSpeed","unit":"kn","frame":"own-vessel","candidates":[{"provider":"wind-only","channel":"wind"}]}]},
-    {"id":"no-depth","bindings":[{"id":"heel","observation":"vessel.heel","unit":"deg","frame":"own-vessel","candidates":[{"provider":"boat","channel":"heel"}]},{"id":"wind","observation":"environment.wind.apparentSpeed","unit":"kn","frame":"own-vessel","candidates":[{"provider":"boat","channel":"wind"}]}]}
+    {"id":"no-depth","bindings":[{"id":"heel","observation":"vessel.heel","unit":"deg","frame":"own-vessel","candidates":[{"provider":"boat","channel":"heel"}]},{"id":"wind","observation":"environment.wind.apparentSpeed","unit":"kn","frame":"own-vessel","candidates":[{"provider":"boat","channel":"wind"}]}]},
+    {"id":"heel-only-boat","bindings":[{"id":"heel","observation":"vessel.heel","unit":"deg","frame":"own-vessel","candidates":[{"provider":"heel-only","channel":"heel-inclinometer"}]}]}
   ],
   "templates": [
     {"id":"heel-degrees","title":"Heel","inputs":[{"id":"heel","title":"Heel","observation":"vessel.heel","unit":"deg","frame":"own-vessel","required":true}],"preferences":{"heel":{"unit":"deg","decimals":1}}},
@@ -28,6 +30,6 @@
     {"id":"rich-instruments","title":"Instruments","inputs":[{"id":"heel","title":"Heel","observation":"vessel.heel","unit":"deg","frame":"own-vessel","required":true},{"id":"depth","title":"Depth","observation":"environment.depth","unit":"m","frame":"own-vessel","required":true},{"id":"wind","title":"Apparent wind","observation":"environment.wind.apparentSpeed","unit":"kn","frame":"own-vessel","required":false}],"preferences":{"depth":{"unit":"ft","decimals":1},"wind":{"unit":"kn","decimals":1}}}
   ],
   "sessions":[
-    {"id":"heel-demo","group":"demo-boat","template":"heel-degrees"},{"id":"heel-radians","group":"demo-boat","template":"heel-radians"},{"id":"heel-qualitative","group":"demo-boat","template":"heel-qualitative"},{"id":"wind-demo","group":"wind-only-boat","template":"wind-only"},{"id":"rich-no-depth","group":"no-depth","template":"rich-instruments"},{"id":"rich-stale-depth","group":"demo-boat","template":"rich-instruments"}
+    {"id":"heel-demo","group":"demo-boat","template":"heel-degrees"},{"id":"heel-radians","group":"demo-boat","template":"heel-radians"},{"id":"heel-qualitative","group":"demo-boat","template":"heel-qualitative"},{"id":"heel-only-demo","group":"heel-only-boat","template":"heel-degrees"},{"id":"wind-demo","group":"wind-only-boat","template":"wind-only"},{"id":"rich-no-depth","group":"no-depth","template":"rich-instruments"},{"id":"rich-stale-depth","group":"demo-boat","template":"rich-instruments"}
   ]
 }
