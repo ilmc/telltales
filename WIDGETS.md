@@ -36,6 +36,16 @@ STW uses the existing reusable `speed` widget, with `inputs.speed` bound to `ves
 
 `sensor-reading` is a provenance-preserving, single-value widget used by the synthetic sensor-group template. Its `binding` names a group binding and `title` is supplied by the template configuration. It displays the selected provider/channel, units, reference frame and explicit fallback state. It is intentionally not an own-vessel apparent-wind widget: an `other-vessel` or `fixed-site` value remains a labelled reading and cannot be silently wired into the apparent-wind dial.
 
+## `surface`
+
+`surface` composes a producer-owned visual frame inside a bounded template slot. It is deliberately not a chart, map, video, routing, or navigation component. The widget has no observation inputs and cannot create, alter, or supply telemetry values.
+
+Its required props are `channel` (a same-origin `BroadcastChannel` name), `nativeSize` (`width`/`height`, positive integer pixels), `fit` (`contain`, `cover`, or `stretch`), and `maxFrameAgeMs` (250–60000). `title` is optional. The template owns clipping, dial/rim artwork, annotation layers, and pointer hit-testing; the frame image is beneath those overlays.
+
+The independent producer sends versioned `frame`, `reset`, or `shutdown` messages on the configured channel. A `frame` carries a publisher ID, send/observation timestamps, opaque frame ID, and browser-safe image URL. Only one publisher is accepted at a time. Reset (including seek/restart) clears the image immediately; shutdown, image-load failure, malformed messages, and age timeout show an explicit unavailable state. A later valid frame can recover it. Frame freshness is separate from observation provenance.
+
+`zo-hud-surface` is a public-safe 1540×720 example: a native 720×720 synthetic surface beneath an overlay dial, flared reusable SOG/wind/depth instrumentation, and no chart/navigation claim. Open `?view=surface-fixture`, then `?view=hud&template=zo-hud-surface`, plus the ordinary simulator in another window.
+
 ## Installation templates (synthetic contract)
 
 `examples/synthetic-sensor-groups.json` is the focused reusable contract for an installation, semantic template and session. An installation channel records its observation, unit, frame and known calibration/datum (or explicit `unknown`); templates declare only required/optional semantic inputs; a session deterministically binds them. Extra installed sensors never make a heel-only template incompatible. Missing compatible sources and installed-but-stale feeds remain different states. Heel presentation may be degrees, radians or user-threshold qualitative labels without changing the binding; wind supports knots/m/s and depth m/ft conversions. Metres-to-feet preserves the declared datum—unknown is never silently reinterpreted as keel, waterline or transducer depth.
