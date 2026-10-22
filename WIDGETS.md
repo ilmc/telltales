@@ -35,3 +35,7 @@ STW uses the existing reusable `speed` widget, with `inputs.speed` bound to `ves
 ## `sensor-reading`
 
 `sensor-reading` is a provenance-preserving, single-value widget used by the synthetic sensor-group template. Its `binding` names a group binding and `title` is supplied by the template configuration. It displays the selected provider/channel, units, reference frame and explicit fallback state. It is intentionally not an own-vessel apparent-wind widget: an `other-vessel` or `fixed-site` value remains a labelled reading and cannot be silently wired into the apparent-wind dial.
+
+## Installation templates (synthetic contract)
+
+`examples/synthetic-sensor-groups.json` is the focused reusable contract for an installation, semantic template and session. An installation channel records its observation, unit, frame and known calibration/datum (or explicit `unknown`); templates declare only required/optional semantic inputs; a session deterministically binds them. Extra installed sensors never make a heel-only template incompatible. Missing compatible sources and installed-but-stale feeds remain different states. Heel presentation may be degrees, radians or user-threshold qualitative labels without changing the binding; wind supports knots/m/s and depth m/ft conversions. Metres-to-feet preserves the declared datum—unknown is never silently reinterpreted as keel, waterline or transducer depth.

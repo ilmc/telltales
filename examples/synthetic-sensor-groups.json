@@ -1,119 +1,33 @@
 {
-  "version": 1,
+  "version": 2,
   "providers": [
-    {
-      "id": "phone",
-      "label": "Phone GNSS (synthetic)",
-      "context": "phone",
-      "channels": [
-        {
-          "id": "sog",
-          "observation": "vessel.speedOverGround",
-          "unit": "kn",
-          "frame": "own-vessel"
-        }
-      ]
-    },
-    {
-      "id": "guest-mast",
-      "label": "Other boat masthead (synthetic)",
-      "context": "other-vessel",
-      "channels": [
-        {
-          "id": "apparent",
-          "observation": "environment.wind.apparentSpeed",
-          "unit": "kn",
-          "frame": "other-vessel"
-        }
-      ]
-    },
-    {
-      "id": "shore",
-      "label": "Fixed shore station (synthetic)",
-      "context": "fixed-site",
-      "channels": [
-        {
-          "id": "wind",
-          "observation": "environment.wind.speed",
-          "unit": "kn",
-          "frame": "fixed-site"
-        }
-      ]
-    }
+    {"id":"boat","label":"Demo boat instruments (synthetic)","context":"own-vessel","channels":[
+      {"id":"heel","observation":"vessel.heel","unit":"deg","frame":"own-vessel","installation":{"mount":"hull","calibration":"unknown"}},
+      {"id":"sog","observation":"vessel.speedOverGround","unit":"kn","frame":"own-vessel","installation":{"adapter":"synthetic"}},
+      {"id":"depth","observation":"environment.depth","unit":"m","frame":"own-vessel","installation":{"depthDatum":"unknown","offset":"unknown"}},
+      {"id":"wind","observation":"environment.wind.apparentSpeed","unit":"kn","frame":"own-vessel","installation":{"mount":"masthead","calibration":"unknown"}}
+    ]},
+    {"id":"wind-only","label":"Wind-only boat (synthetic)","context":"own-vessel","channels":[{"id":"wind","observation":"environment.wind.apparentSpeed","unit":"kn","frame":"own-vessel","installation":{"mount":"masthead","calibration":"unknown"}}]},
+    {"id":"other-boat","label":"Other boat masthead (synthetic)","context":"other-vessel","channels":[{"id":"wind","observation":"environment.wind.apparentSpeed","unit":"kn","frame":"other-vessel","installation":{"mount":"masthead"}}]}
   ],
   "groups": [
-    {
-      "id": "guest-sailing",
-      "bindings": [
-        {
-          "id": "sog",
-          "observation": "vessel.speedOverGround",
-          "unit": "kn",
-          "frame": "own-vessel",
-          "maxAgeMs": 30000,
-          "candidates": [
-            {
-              "provider": "phone",
-              "channel": "sog"
-            }
-          ]
-        },
-        {
-          "id": "remoteWind",
-          "observation": "environment.wind.apparentSpeed",
-          "unit": "kn",
-          "frame": "other-vessel",
-          "maxAgeMs": 30000,
-          "candidates": [
-            {
-              "provider": "guest-mast",
-              "channel": "apparent"
-            }
-          ]
-        },
-        {
-          "id": "shoreWind",
-          "observation": "environment.wind.speed",
-          "unit": "kn",
-          "frame": "fixed-site",
-          "maxAgeMs": 30000,
-          "candidates": [
-            {
-              "provider": "shore",
-              "channel": "wind"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "shore-only",
-      "bindings": [
-        {
-          "id": "shoreWind",
-          "observation": "environment.wind.speed",
-          "unit": "kn",
-          "frame": "fixed-site",
-          "candidates": [
-            {
-              "provider": "shore",
-              "channel": "wind"
-            }
-          ]
-        }
-      ]
-    }
+    {"id":"demo-boat","bindings":[
+      {"id":"heel","observation":"vessel.heel","unit":"deg","frame":"own-vessel","candidates":[{"provider":"boat","channel":"heel"}]},
+      {"id":"sog","observation":"vessel.speedOverGround","unit":"kn","frame":"own-vessel","candidates":[{"provider":"boat","channel":"sog"}]},
+      {"id":"depth","observation":"environment.depth","unit":"m","frame":"own-vessel","maxAgeMs":30000,"candidates":[{"provider":"boat","channel":"depth"}]},
+      {"id":"wind","observation":"environment.wind.apparentSpeed","unit":"kn","frame":"own-vessel","candidates":[{"provider":"boat","channel":"wind"}]}
+    ]},
+    {"id":"wind-only-boat","bindings":[{"id":"wind","observation":"environment.wind.apparentSpeed","unit":"kn","frame":"own-vessel","candidates":[{"provider":"wind-only","channel":"wind"}]}]},
+    {"id":"no-depth","bindings":[{"id":"heel","observation":"vessel.heel","unit":"deg","frame":"own-vessel","candidates":[{"provider":"boat","channel":"heel"}]},{"id":"wind","observation":"environment.wind.apparentSpeed","unit":"kn","frame":"own-vessel","candidates":[{"provider":"boat","channel":"wind"}]}]}
   ],
-  "sessions": [
-    {
-      "id": "guest",
-      "template": "synthetic-provenance-hud",
-      "group": "guest-sailing"
-    },
-    {
-      "id": "home",
-      "template": "synthetic-provenance-hud",
-      "group": "guest-sailing"
-    }
+  "templates": [
+    {"id":"heel-degrees","title":"Heel","inputs":[{"id":"heel","title":"Heel","observation":"vessel.heel","unit":"deg","frame":"own-vessel","required":true}],"preferences":{"heel":{"unit":"deg","decimals":1}}},
+    {"id":"heel-radians","title":"Heel","inputs":[{"id":"heel","title":"Heel","observation":"vessel.heel","unit":"deg","frame":"own-vessel","required":true}],"preferences":{"heel":{"unit":"rad","decimals":2}}},
+    {"id":"heel-qualitative","title":"Heel","inputs":[{"id":"heel","title":"Heel","observation":"vessel.heel","unit":"deg","frame":"own-vessel","required":true}],"preferences":{"heel":{"mode":"qualitative","labels":{"flat":3,"little":12,"lots":25}}}},
+    {"id":"wind-only","title":"Apparent wind","inputs":[{"id":"wind","title":"Apparent wind","observation":"environment.wind.apparentSpeed","unit":"kn","frame":"own-vessel","required":true}],"preferences":{"wind":{"unit":"m/s","decimals":1}}},
+    {"id":"rich-instruments","title":"Instruments","inputs":[{"id":"heel","title":"Heel","observation":"vessel.heel","unit":"deg","frame":"own-vessel","required":true},{"id":"depth","title":"Depth","observation":"environment.depth","unit":"m","frame":"own-vessel","required":true},{"id":"wind","title":"Apparent wind","observation":"environment.wind.apparentSpeed","unit":"kn","frame":"own-vessel","required":false}],"preferences":{"depth":{"unit":"ft","decimals":1},"wind":{"unit":"kn","decimals":1}}}
+  ],
+  "sessions":[
+    {"id":"heel-demo","group":"demo-boat","template":"heel-degrees"},{"id":"heel-radians","group":"demo-boat","template":"heel-radians"},{"id":"heel-qualitative","group":"demo-boat","template":"heel-qualitative"},{"id":"wind-demo","group":"wind-only-boat","template":"wind-only"},{"id":"rich-no-depth","group":"no-depth","template":"rich-instruments"},{"id":"rich-stale-depth","group":"demo-boat","template":"rich-instruments"}
   ]
 }

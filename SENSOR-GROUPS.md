@@ -1,29 +1,17 @@
-# Synthetic sensor groups (Issue #8, contract slice)
+# Synthetic boat installations (Issue #8 contract slice)
 
-This example is a **local, synthetic contract fixture**, not a functioning network adapter, live phone GNSS input or deployed multi-vessel HUD. Its provider/group/session catalog remains a focused fixture, while the representative `synthetic-provenance-hud` template and reusable `sensor-reading` widgets are declared and validated in `config.json`. Both `sensor-groups-demo.html` and `/?view=hud&sensorGroup=guest-sailing` mount that same template renderer; the latter no longer replaces the configured HUD with fetched standalone markup.
+`examples/synthetic-sensor-groups.json` is a local, synthetic contract fixture—not a network adapter or claim of live boat hardware. It separates three things:
 
-`examples/synthetic-sensor-groups.json` declares three independent origins:
+- A provider channel is a boat/context-local installation: typed observation, unit, reference frame and installation metadata. Depth must state `transducer`, `keel`, `waterline`, or explicit `unknown`; offsets/calibration are never invented.
+- A reusable template declares required and optional semantic inputs. It does not name a provider, model, complete boat inventory or transport.
+- A session picks one installation group and one template. It makes deterministic bindings in declared candidate order and retains producer, frame, timestamp, validity and installation metadata.
 
-- `phone/sog` — synthetic phone-like SOG, own-vessel reference frame.
-- `guest-mast/apparent` — synthetic apparent wind *relative to another vessel*. It is not apparent wind at the viewing vessel.
-- `shore/wind` — synthetic fixed-site wind. It is neither the observing vessel's apparent wind nor automatically true wind at the observing vessel.
+`evaluateTemplate` returns `available`, `partial`, or `incompatible`. Extra channels are ignored. A non-existent compatible channel is `No compatible sensor source`; an installed channel with no fresh valid reading is `Installed sensor unavailable or stale`. Those states must not be conflated.
 
-A provider has a context and typed channels. A group binds named presentation inputs to an **ordered explicit** choice of providers/channels, requiring matching observation ID, units, and frame. The first fresh valid candidate wins. A lower-priority candidate may be used only with `fallback: true` in the result; the choice is never based on latest packet arrival. Missing, stale, invalid, wrong-unit and wrong-frame observations do not become valid display values. Returning an unavailable status is mandatory when all candidates fail.
+The fixture’s heel-only sessions use exactly the same semantic heel binding while their template preferences render degrees, radians, or configurable `flat` / `little` / `lots to port/starboard` labels. Wind supports knot/metres-per-second display conversion and depth supports metres/feet conversion, but a conversion never changes a depth datum: an unknown datum remains unknown, not keel or waterline depth. An other-vessel or fixed-site wind channel cannot bind an own-vessel apparent-wind input.
 
-A session independently associates a sensor-group ID with a template ID. Selecting a new group clears cached observations, rather than inheriting possibly misleading data from the previous context; the template is unchanged. Separate session objects never share observation history.
+`/?view=hud&sensorSession=heel-demo` mounts a presentation-only synthetic HUD with no setup controls. `sensor-groups-demo.html?session=heel-demo&harness=true` is the separate engineering harness for dispatching fixture readings and simulating feed loss. Community examples may share reusable templates and non-identifying synthetic definitions; boat identity, locations, calibrations and secrets must remain local by default.
 
-Example from a Node ES module:
+## Current limitations
 
-```js
-import {readFileSync} from 'node:fs';
-import {createSensorSession} from './src/sensor-groups.mjs';
-const catalog = JSON.parse(readFileSync('./examples/synthetic-sensor-groups.json'));
-const session = createSensorSession(catalog, 'guest', console.log);
-console.log(session.snapshot()); // unavailable until synthetic observations are dispatched
-```
-
-## Current limitations and non-goals
-
-This completes the local synthetic/template-composition slice of #8. The browser demo labels synthetic provenance and offers group switching and feed-loss simulation. No live cross-boat networking, transport authentication, device discovery, remote upload, geospatial transformation, chart integration or physical NASA instrument has been implemented. In particular, do not route the synthetic other-vessel wind through the existing own-vessel apparent-wind dial.
-
-Keep the PR open until independently reviewed and authorised for merge.
+No live networking, discovery, authentication, physical adapter, remote upload, geospatial transform, true-wind calculation, chart integration, or navigation capability is implemented. The legacy simulator, replay, BroadcastChannel, Signal K and two-window HUD route stay separate and unchanged. Keep the PR draft until independently reviewed and authorised for merge.

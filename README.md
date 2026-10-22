@@ -19,7 +19,7 @@ The repository currently demonstrates:
 - versioned same-browser transport using `BroadcastChannel`, with snapshots, heartbeat and failure handling;
 - an optional local Signal K round trip while keeping widgets transport-independent;
 - declarative observations, sources, widgets, templates and display profiles in `config.json`;
-- a synthetic three-provider sensor-group template that preserves own-vessel, other-vessel and fixed-site provenance without claiming connectivity;
+- synthetic boat-installation examples with semantic template matching, provenance and freshness states, without claiming connectivity;
 - automated Node contract tests and Chromium browser coverage.
 
 The full HUD displays SOG, STW, heel, apparent wind and depth. Depth is deliberately labelled with an unknown/uncalibrated reference rather than implying a keel, surface or transducer datum that has not been established. The committed virtual sources and example recordings are simulation/test inputs, not claims of live boat hardware support.
@@ -49,7 +49,7 @@ The server binds to `127.0.0.1:4173` by default. The simulator owns virtual inpu
 
 For a smaller composition, use `sailing-hud`. For the wind-enabled composition, use `sailing-hud-wind`. Browser fullscreen can be entered with F11 or the simulator's user-initiated **Fullscreen** action where supported.
 
-The synthetic provenance fixture is available at `/?view=hud&sensorGroup=guest-sailing`. It exercises a configured `synthetic-provenance-hud` template and provider labels only; it does not connect to phones, other boats, shore stations, or any remote service.
+The synthetic installation fixture is available at `/?view=hud&sensorSession=heel-demo`. It is a presentation-only HUD: setup choices are not controls on that screen. `sensor-groups-demo.html?session=heel-demo&harness=true` is the clearly labelled engineering harness. Both are synthetic only and do not connect to phones, other boats, shore stations, or any remote service.
 
 More detail lives in the focused technical documents:
 

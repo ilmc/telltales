@@ -1,110 +1,13 @@
-// Optional Issue #8 sensor-group contract. Legacy config and buses are unchanged.
-// This layer does not implement remote transport or reinterpret cross-vessel wind.
-const finite = x => typeof x === 'number' && Number.isFinite(x);
-const frames = new Set(['own-vessel','other-vessel','fixed-site']);
-const contexts = new Set(['own-vessel','other-vessel','fixed-site','phone']);
-const fail = message => { throw Error(message); };
-const unique = (array, what) => {
-  const ids = new Set();
-  for (const item of array) {
-    if (typeof item?.id !== 'string' || !item.id || ids.has(item.id)) fail(`Duplicate or invalid ${what} ID`);
-    ids.add(item.id);
-  }
-};
-export function validateSensorCatalog(catalog) {
-  if (!catalog || catalog.version !== 1 || !Array.isArray(catalog.providers) ||
-      !Array.isArray(catalog.groups) || !Array.isArray(catalog.sessions)) fail('Invalid sensor catalog');
-  unique(catalog.providers, 'provider');
-  unique(catalog.groups, 'group');
-  unique(catalog.sessions, 'session');
-  const providers = new Map();
-  for (const p of catalog.providers) {
-    if (!contexts.has(p.context) || typeof p.label !== 'string' || !p.label.trim() ||
-        !Array.isArray(p.channels) || !p.channels.length) fail('Invalid provider context or channels');
-    unique(p.channels, 'channel');
-    for (const ch of p.channels) {
-      if (!ch.observation || !ch.unit || !frames.has(ch.frame) ||
-          (ch.frame === 'own-vessel' && p.context !== 'own-vessel' && p.context !== 'phone') ||
-          (ch.frame === 'other-vessel' && p.context !== 'other-vessel') ||
-          (ch.frame === 'fixed-site' && p.context !== 'fixed-site')) fail('Invalid channel semantics');
-    }
-    providers.set(p.id, p);
-  }
-  const groups = new Map();
-  for (const group of catalog.groups) {
-    if (!Array.isArray(group.bindings) || !group.bindings.length) fail('Empty sensor group');
-    unique(group.bindings, 'binding');
-    for (const b of group.bindings) {
-      if (!b.observation || !b.unit || !frames.has(b.frame) ||
-          !Array.isArray(b.candidates) || !b.candidates.length ||
-          new Set(b.candidates.map(x => `${x.provider}/${x.channel}`)).size !== b.candidates.length)
-        fail('Invalid group binding');
-      for (const choice of b.candidates) {
-        const ch = providers.get(choice.provider)?.channels.find(x => x.id === choice.channel);
-        if (!ch) fail('Missing provider/channel');
-        if (ch.observation !== b.observation || ch.unit !== b.unit || ch.frame !== b.frame)
-          fail('Incompatible observation unit or reference frame');
-      }
-    }
-    groups.set(group.id, group);
-  }
-  for (const s of catalog.sessions) {
-    if (!groups.has(s.group) || typeof s.template !== 'string' || !s.template.trim())
-      fail('Invalid session template or group');
-  }
-  return catalog;
-}
-export function createSensorSession(catalog, sessionId, emit = () => {}, now = () => Date.now()) {
-  validateSensorCatalog(catalog);
-  const session = catalog.sessions.find(x => x.id === sessionId);
-  if (!session) fail('Unknown session');
-  let groupId = session.group;
-  const latest = new Map();
-  const group = () => catalog.groups.find(x => x.id === groupId);
-  const read = binding => {
-    let missing = 'No selected provider observation';
-    for (const choice of binding.candidates) {
-      const provider = catalog.providers.find(x => x.id === choice.provider);
-      const channel = provider.channels.find(x => x.id === choice.channel);
-      const observation = latest.get(`${provider.id}/${channel.id}`);
-      if (!observation) continue;
-      const timestamp = Date.parse(observation.observedAt);
-      if (observation.observation !== binding.observation ||
-          observation.unit !== binding.unit || observation.frame !== binding.frame ||
-          !observation.valid || !finite(observation.value) ||
-          !Number.isFinite(timestamp) || timestamp > now() + 1000 ||
-          now() - timestamp > (binding.maxAgeMs ?? 30000)) {
-        missing = 'Selected observation invalid, stale or incompatible';
-        continue;
-      }
-      return {ok:true, value:observation.value, observation:binding.observation,
-        unit:binding.unit, frame:binding.frame, providerId:provider.id,
-        channelId:channel.id, providerLabel:provider.label,
-        fallback:choice !== binding.candidates[0], observedAt:observation.observedAt,
-        simulated:observation.simulated};
-    }
-    return {ok:false, observation:binding.observation, unit:binding.unit,
-      frame:binding.frame, reason:missing};
-  };
-  const snapshot = () => Object.fromEntries(group().bindings.map(b => [b.id, read(b)]));
-  const notify = () => { const values = snapshot(); emit({sessionId,groupId,template:session.template,values}); return values; };
-  return {
-    dispatch(r) {
-      const provider = catalog.providers.find(x => x.id === r?.providerId);
-      const ch = provider?.channels.find(x => x.id === r?.channelId);
-      if (!ch || r.observation !== ch.observation || r.unit !== ch.unit ||
-          r.frame !== ch.frame || typeof r.simulated !== 'boolean') return false;
-      latest.set(`${provider.id}/${ch.id}`, {...r}); notify(); return true;
-    },
-    selectGroup(id) {
-      if (!catalog.groups.some(g => g.id === id)) fail('Unknown sensor group');
-      groupId = id;
-      latest.clear(); // never inherit observations from a previous sailing context
-      return notify();
-    },
-    refresh: notify,
-    get groupId() { return groupId; },
-    get template() { return session.template; },
-    snapshot
-  };
-}
+// Opt-in Issue #8 contract. Installation describes measurement meaning;
+// templates declare semantic needs; sessions bind the two.
+const finite=x=>typeof x==='number'&&Number.isFinite(x),fail=x=>{throw Error(x)},frames=new Set(['own-vessel','other-vessel','fixed-site']),contexts=new Set(['own-vessel','other-vessel','fixed-site','phone']),units=new Set(['deg','rad','kn','m','m/s','ft']);
+const unique=(xs,what)=>{let seen=new Set;for(const x of xs||[]){if(typeof x?.id!=='string'||!x.id||seen.has(x.id))fail(`Duplicate or invalid ${what} ID`);seen.add(x.id)}};
+const semantic=x=>x&&typeof x.observation==='string'&&units.has(x.unit)&&frames.has(x.frame);
+const channel=(c,p,id)=>c.providers.find(x=>x.id===p)?.channels.find(x=>x.id===id);
+export function validateSensorCatalog(c){if(!c||c.version!==2||!Array.isArray(c.providers)||!Array.isArray(c.groups)||!Array.isArray(c.templates)||!Array.isArray(c.sessions))fail('Invalid sensor catalog');unique(c.providers,'provider');unique(c.groups,'group');unique(c.templates,'template');unique(c.sessions,'session');for(const p of c.providers){if(!contexts.has(p.context)||typeof p.label!=='string'||!p.label.trim()||!Array.isArray(p.channels)||!p.channels.length)fail('Invalid provider context or channels');unique(p.channels,'channel');for(const ch of p.channels){if(!semantic(ch)||(ch.frame==='own-vessel'&&!['own-vessel','phone'].includes(p.context))||(ch.frame==='other-vessel'&&p.context!=='other-vessel')||(ch.frame==='fixed-site'&&p.context!=='fixed-site'))fail('Invalid channel semantics');if(ch.observation==='environment.depth'&&!['unknown','transducer','keel','waterline'].includes(ch.installation?.depthDatum))fail('Depth installation must declare datum or unknown')}}for(const g of c.groups){if(!Array.isArray(g.bindings)||!g.bindings.length)fail('Empty sensor group');unique(g.bindings,'binding');for(const b of g.bindings){if(!semantic(b)||!Array.isArray(b.candidates)||!b.candidates.length)fail('Invalid group binding');let seen=new Set;for(const q of b.candidates){let k=`${q?.provider}/${q?.channel}`,ch=channel(c,q?.provider,q?.channel);if(seen.has(k))fail('Duplicate group candidate');seen.add(k);if(!ch)fail('Missing provider/channel');if(ch.observation!==b.observation||ch.unit!==b.unit||ch.frame!==b.frame)fail('Incompatible observation unit or reference frame')}}}for(const t of c.templates){if(!Array.isArray(t.inputs)||!t.inputs.length)fail('Template requires semantic inputs');unique(t.inputs,'template input');for(const i of t.inputs)if(!semantic(i)||typeof i.required!=='boolean')fail('Invalid template input')}for(const s of c.sessions)if(!c.groups.some(x=>x.id===s.group)||!c.templates.some(x=>x.id===s.template))fail('Invalid session template or group');return c}
+const matching=(g,i)=>g.bindings.find(b=>b.observation===i.observation&&b.unit===i.unit&&b.frame===i.frame);
+export function evaluateTemplate(c,groupId,templateId){validateSensorCatalog(c);let g=c.groups.find(x=>x.id===groupId),t=c.templates.find(x=>x.id===templateId),inputs=Object.fromEntries(t.inputs.map(i=>{let b=matching(g,i);return[i.id,{...i,binding:b?.id,status:b?'available':'missing-compatible-source'}]})),req=t.inputs.filter(x=>x.required),found=req.filter(x=>inputs[x.id].binding).length;return{groupId,templateId,status:found===req.length?'available':found?'partial':'incompatible',inputs}}
+export function convertPresentation(v,observation,from,to){if(!finite(v)||from===to)return v;if(observation==='vessel.heel'&&from==='deg'&&to==='rad')return v*Math.PI/180;if(observation==='vessel.heel'&&from==='rad'&&to==='deg')return v*180/Math.PI;if(observation.includes('wind')&&from==='kn'&&to==='m/s')return v*.514444;if(observation.includes('wind')&&from==='m/s'&&to==='kn')return v/.514444;if(observation==='environment.depth'&&from==='m'&&to==='ft')return v*3.28084;if(observation==='environment.depth'&&from==='ft'&&to==='m')return v/3.28084;fail(`Unsupported presentation conversion ${from} to ${to}`)}
+export function heelLabel(degrees,labels={flat:2,little:12,lots:30}){let a=Math.abs(degrees),side=degrees<0?'port':degrees>0?'starboard':'';return a<labels.flat?'flat':`${a<labels.little?'little':'lots'} to ${side||'either side'}`}
+export function formatPresentation(r,prefs={}){if(!r?.ok)return{value:'—',unit:'',reason:r?.reason||'No compatible sensor source'};let unit=prefs.unit||r.unit,v=convertPresentation(r.value,r.observation,r.unit,unit);if(r.observation==='vessel.heel'&&prefs.mode==='qualitative'){let deg=r.unit==='deg'?r.value:convertPresentation(r.value,r.observation,r.unit,'deg');return{value:heelLabel(deg,prefs.labels),unit:''}}return{value:v.toFixed(prefs.decimals??1),unit}}
+export function createSensorSession(c,sessionId,emit=()=>{},now=()=>Date.now()){validateSensorCatalog(c);let s=c.sessions.find(x=>x.id===sessionId),latest=new Map(),group=()=>c.groups.find(x=>x.id===s.group),template=()=>c.templates.find(x=>x.id===s.template);const read=i=>{let b=matching(group(),i);if(!b)return{ok:false,observation:i.observation,unit:i.unit,frame:i.frame,reason:'No compatible sensor source'};let reason='Installed sensor unavailable';for(let index=0;index<b.candidates.length;index++){let q=b.candidates[index],ch=channel(c,q.provider,q.channel),r=latest.get(`${q.provider}/${q.channel}`);if(!r)continue;let at=Date.parse(r.observedAt);if(!r.valid||!finite(r.value)||!Number.isFinite(at)||at>now()+1000||now()-at>(b.maxAgeMs??30000)){reason='Installed sensor unavailable or stale';continue}return{ok:true,value:r.value,observation:b.observation,unit:b.unit,frame:b.frame,providerId:q.provider,channelId:q.channel,providerLabel:c.providers.find(x=>x.id===q.provider).label,installation:ch.installation||{},observedAt:r.observedAt,simulated:r.simulated,fallback:index>0}}return{ok:false,observation:b.observation,unit:b.unit,frame:b.frame,reason}};const snapshot=()=>{let e=evaluateTemplate(c,s.group,s.template),values={};for(const i of template().inputs)values[i.id]=read(i);return{sessionId:s.id,groupId:s.group,templateId:s.template,compatibility:e.status,inputs:e.inputs,values}};const notify=()=>{let x=snapshot();emit(x);return x};return{dispatch(r){let ch=channel(c,r?.providerId,r?.channelId);if(!ch||r.observation!==ch.observation||r.unit!==ch.unit||r.frame!==ch.frame||typeof r.simulated!=='boolean')return false;latest.set(`${r.providerId}/${r.channelId}`,r);notify();return true},refresh:notify,snapshot,get templateId(){return s.template},get groupId(){return s.group}}}
