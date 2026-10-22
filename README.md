@@ -6,8 +6,10 @@ An open-source sailing-observation experiment, not a navigation instrument.
 
 ```sh
 npm ci
-python3 -m http.server 4173
+npm start
 ```
+
+The development server is a small dependency-free Node.js static server, deliberately using the same Node toolchain as the application tests. It binds to `127.0.0.1:4173` by default; set `HOST` or `PORT` only when you intentionally need a different local binding.
 
 Open the simulator at `http://localhost:4173/?view=simulator`, then open the operational display in a separate browser window at `http://localhost:4173/?view=hud&template=sailing-hud`. Either order works. Select F11, or use the simulator's user-initiated **Fullscreen** button, to enter browser fullscreen; browsers may require that interaction.
 
