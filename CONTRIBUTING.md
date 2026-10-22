@@ -72,6 +72,8 @@ Community display templates use semantic observation/unit/frame inputs, never a 
 
 Use `examples/synthetic-sensor-groups.json` and `SENSOR-GROUPS.md` as the small validated starter convention for heel-only, wind-only and richer inventories. It is an offline contract/example, not an adapter contribution format or a claim that a real device is supported.
 
+`examples/local-boat-profile.example.json` is deliberately a local-only artifact. Copy it outside the repository for an actual boat, validate it with `node scripts/validate-boat-profile.mjs`, and do not submit the copied profile in a public PR.
+
 The current validation commands are:
 
 ```sh

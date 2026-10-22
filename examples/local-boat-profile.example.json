@@ -1,0 +1,17 @@
+{
+  "format": "telltales.boat-profile",
+  "version": 1,
+  "privacy": "local-only",
+  "id": "example-local-boat",
+  "label": "Example local boat profile (synthetic)",
+  "providers": [
+    {"id":"local-instruments","label":"Local heel and depth instruments (synthetic)","context":"own-vessel","channels":[
+      {"id":"heel-inclinometer","observation":"vessel.heel","unit":"deg","frame":"own-vessel","installation":{"mount":"companionway bulkhead","calibration":"known","offset":"known"}},
+      {"id":"depth-transducer","observation":"environment.depth","unit":"m","frame":"own-vessel","installation":{"mount":"through-hull","depthDatum":"transducer","calibration":"unknown","offset":"unknown"}}
+    ]}
+  ],
+  "sensorGroup": {"id":"example-local-sensors","bindings":[
+    {"id":"heel","observation":"vessel.heel","unit":"deg","frame":"own-vessel","candidates":[{"provider":"local-instruments","channel":"heel-inclinometer"}]},
+    {"id":"depth","observation":"environment.depth","unit":"m","frame":"own-vessel","candidates":[{"provider":"local-instruments","channel":"depth-transducer"}]}
+  ]}
+}
