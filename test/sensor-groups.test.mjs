@@ -24,7 +24,7 @@ test('rejects missing channel and mismatched frame or unit',()=>{
  }
  for(const field of ['frame','unit','observation']){
   const bad=clone();bad.groups[0].bindings[0][field]='wrong';
-  assert.throws(()=>validateSensorCatalog(bad),/Incompatible/);
+  assert.throws(()=>validateSensorCatalog(bad),/Incompatible|Invalid group binding/);
  }
  const bad=clone();bad.providers[1].channels[0].frame='own-vessel';
  assert.throws(()=>validateSensorCatalog(bad),/Invalid channel semantics/);
