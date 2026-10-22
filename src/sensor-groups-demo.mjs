@@ -32,3 +32,5 @@ document.getElementById('invalidate').addEventListener('click',()=>{
  clock+=31000; session.refresh();
 });
 setup();
+const requested=new URLSearchParams(location.search).get('sensorGroup');
+if(requested){if(!catalog.groups.some(x=>x.id===requested))throw Error('Unknown requested sensor group');group.value=requested;session.selectGroup(requested)}
