@@ -1,7 +1,7 @@
 import test from'node:test';
 import assert from'node:assert/strict';
 import{readFileSync}from'node:fs';
-import{composeLocalProfile,parseLocalProfile,MAX_PROFILE_BYTES}from'../src/private-profile-setup.mjs';
+import{composeLocalProfile,parseLocalProfile,MAX_PROFILE_BYTES}from'../src/private-profile-contract.mjs';
 const profile=JSON.parse(readFileSync(new URL('../examples/local-boat-profile.example.json',import.meta.url)));
 const community=JSON.parse(readFileSync(new URL('../examples/synthetic-sensor-groups.json',import.meta.url)));
 test('private profile replaces fixture inventory without mutating community fixtures',()=>{
