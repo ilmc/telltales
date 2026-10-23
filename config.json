@@ -272,6 +272,7 @@
             }
         },
         {"id":"primary-stw","widget":"speed","inputs":{"speed":"vessel.speedThroughWater"},"props":{"mode":"combined","title":"Speed through water (STW)","historySeconds":120,"showUnits":true,"scale":{"min":0,"max":12},"historyOpacity":0.65,"numericPosition":"center"}},
+        {"id":"primary-heel","widget":"heel","inputs":{"heel":"vessel.heel"},"props":{"title":"Heel"}},
         {"id":"depth-number","widget":"depth","inputs":{"depth":"environment.depth"},"props":{"mode":"number","title":"Depth","showUnits":true,"showReference":true,"showScale":true,"referenceLabel":"REFERENCE UNKNOWN / UNCALIBRATED","scale":{"min":0,"max":30}}},
         {"id":"primary-depth","widget":"depth","inputs":{"depth":"environment.depth"},"props":{"mode":"combined","title":"Depth","showUnits":true,"showReference":true,"showScale":true,"referenceLabel":"REFERENCE UNKNOWN / UNCALIBRATED","scale":{"min":0,"max":30}}},
         {
@@ -326,7 +327,12 @@
     ,{
       "id": "zo-hud-surface",
       "widgets": ["primary-speed", "primary-wind", "primary-depth", "external-surface"],
-      "layout": {"referenceWidth": 1540, "referenceHeight": 720, "slots": {"speed":"port", "surface":"main", "wind":"starboard-top", "depth":"starboard-bottom"}}
+      "layout": {"referenceWidth": 1540, "referenceHeight": 720, "slots": {"primary-speed":"port", "external-surface":"main", "primary-wind":"starboard-top", "primary-depth":"starboard-bottom"}}
+    }
+    ,{
+      "id": "surface-hud-instruments",
+      "widgets": ["primary-speed", "primary-heel", "primary-wind", "primary-depth", "external-surface"],
+      "layout": {"referenceWidth": 1540, "referenceHeight": 720, "slots": {"primary-speed":"port", "external-surface":"main", "primary-heel":"starboard-top", "primary-wind":"starboard-middle", "primary-depth":"starboard-bottom"}}
     }
   ],
     "display": {
