@@ -1,6 +1,7 @@
 import{listTemplateCompatibility}from'./sensor-groups.mjs';
 import{composeLocalProfile,parseLocalProfile,MAX_PROFILE_BYTES}from'./private-profile-contract.mjs';
 import{mountSensorGroupHud}from'./sensor-groups-demo.mjs';
+const sessionId='private-profile-session';
 
 export function mountPrivateProfileSetup({community,root=document.body}){
   root.replaceChildren();
