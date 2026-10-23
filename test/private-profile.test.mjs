@@ -19,3 +19,31 @@ test('private profiles fail closed for invalid datum, missing channels and exces
  const wrong=structuredClone(profile);wrong.providers[0].channels[1].installation.depthDatum='invented';
  assert.throws(()=>composeLocalProfile(wrong,community),/Depth/);
 });
+
+
+test('two independently installed boats can select the same semantic display',()=>{
+  const second=structuredClone(profile);
+  second.id='second-local-boat';
+  second.providers[0].id='other-inclinometer';
+  second.providers[0].channels[0].id='tilt';
+  second.providers[0].channels[0].installation.calibration='unknown';
+  second.sensorGroup.id='second-sensors';
+  second.sensorGroup.bindings[0].candidates[0]={provider:'other-inclinometer',channel:'tilt'};
+  second.sensorGroup.bindings=second.sensorGroup.bindings.slice(0,1);
+  second.providers[0].channels=second.providers[0].channels.slice(0,1);
+  const a=composeLocalProfile(profile,community),b=composeLocalProfile(second,community);
+  assert.equal(a.templates[0].id,b.templates[0].id);
+  assert.notEqual(a.providers[0].id,b.providers[0].id);
+  assert.deepEqual(a.groups[0].bindings[0].candidates,[{provider:'local-instruments',channel:'heel-inclinometer'}]);
+  assert.deepEqual(b.groups[0].bindings[0].candidates,[{provider:'other-inclinometer',channel:'tilt'}]);
+  assert.equal(community.providers.some(x=>x.id==='other-inclinometer'),false);
+});
+test('private profile identifiers never silently bind bundled fixture channels',()=>{
+ const collision=structuredClone(profile);
+ collision.providers[0].id='boat';
+ collision.sensorGroup.bindings.forEach(b=>b.candidates.forEach(c=>c.provider='boat'));
+ const c=composeLocalProfile(collision,community);
+ assert.deepEqual(c.providers.map(p=>p.id),['boat']);
+ assert.deepEqual(c.groups.map(g=>g.id),['example-local-sensors']);
+ assert.equal(c.providers[0].channels.some(x=>x.id==='sog'),false);
+});
