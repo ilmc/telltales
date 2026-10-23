@@ -40,5 +40,27 @@ export function deltaToObservations(delta,{now=new Date()}={}){
   } return out;
 }
 export function createSignalKSubscriber({url,onObservation,onState,WebSocketImpl=globalThis.WebSocket,reconnectMs=1000}){
-  let ws,closed=false,timer;const state=x=>onState?.(x),subscription={context:'vessels.self',subscribe:[...Object.values(SIGNALK_PATHS),...Object.keys(SIGNALK_PATHS).map(id=>`telltales.observationMeta.${key(id)}`)].map(path=>({path,period:100}))};const connect=()=>{if(closed)return;try{state({connected:false,reason:'Connecting to Signal K'});ws=new WebSocketImpl(url)}catch(e){state({connected:false,reason:`Signal K unavailable: ${e.message}`});timer=setTimeout(connect,reconnectMs);return}ws.onopen=()=>{ws.send(JSON.stringify(subscription));state({connected:true})};ws.onmessage=e=>{try{for(const r of deltaToObservations(JSON.parse(e.data)))onObservation(r)}catch{state({connected:false,reason:'Malformed Signal K delta rejected'})}};ws.onerror=()=>state({connected:false,reason:'Signal K connection error'});ws.onclose=()=>{state({connected:false,reason:'Signal K disconnected'});if(!closed)timer=setTimeout(connect,reconnectMs)}};connect();return{close(){closed=true;clearTimeout(timer);ws?.close()}};
+  let ws,closed=false,timer;
+  // Signal K may fan a single app.handleMessage update into separate stream
+  // messages. Retain a null native value briefly so its adjacent Telltales
+  // metadata can still make the corresponding HUD reading unavailable.
+  const pendingNulls=new Map(),state=x=>onState?.(x),subscription={context:'vessels.self',subscribe:[...Object.values(SIGNALK_PATHS),...Object.keys(SIGNALK_PATHS).map(id=>`telltales.observationMeta.${key(id)}`)].map(path=>({path,period:100}))};
+  const receive=delta=>{
+    for(const update of delta?.updates||[]){
+      const nulls=new Map(),invalid=[];
+      for(const value of update.values||[]){
+        const id=Object.entries(SIGNALK_PATHS).find(([,path])=>path===value?.path)?.[0];
+        if(id&&value.value===null)nulls.set(id,value);
+        if(/^telltales\.observationMeta\./.test(value?.path||'')&&value.value?.valid===false&&SIGNALK_PATHS[value.value.id])invalid.push(value);
+      }
+      for(const value of invalid){
+        const id=value.value.id,raw=nulls.get(id)||pendingNulls.get(id);
+        if(raw&&!nulls.has(id))for(const observation of deltaToObservations({updates:[{timestamp:update.timestamp,source:update.source,values:[{path:SIGNALK_PATHS[id],value:null},value]}]}))onObservation(observation);
+        pendingNulls.delete(id);
+      }
+      for(const [id,value] of nulls)if(!invalid.some(meta=>meta.value.id===id))pendingNulls.set(id,value);
+    }
+    for(const observation of deltaToObservations(delta))onObservation(observation);
+  };
+  const connect=()=>{if(closed)return;try{state({connected:false,reason:'Connecting to Signal K'});ws=new WebSocketImpl(url)}catch(e){state({connected:false,reason:`Signal K unavailable: ${e.message}`});timer=setTimeout(connect,reconnectMs);return}ws.onopen=()=>{ws.send(JSON.stringify(subscription));state({connected:true})};ws.onmessage=e=>{try{receive(JSON.parse(e.data))}catch{state({connected:false,reason:'Malformed Signal K delta rejected'})}};ws.onerror=()=>state({connected:false,reason:'Signal K connection error'});ws.onclose=()=>{state({connected:false,reason:'Signal K disconnected'});if(!closed)timer=setTimeout(connect,reconnectMs)}};connect();return{close(){closed=true;clearTimeout(timer);ws?.close()}};
 }
