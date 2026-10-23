@@ -8,7 +8,7 @@ Use the official Signal K server image pinned by digest in `docker-compose.signa
 
 Open the simulator with `?view=simulator&mode=signalk&signalkToken=YOUR_TOKEN`, then the full HUD with `?view=hud&template=sailing-hud-full&mode=signalk`. An alternate endpoint can be explicitly supplied as `signalkEndpoint`; the stream defaults to `/signalk/v1/stream?subscribe=none` on that host. Tokens are deliberately not persisted. The simulator engineering page identifies the selected route; the fullscreen HUD contains no setup controls.
 
-The plugin accepts only `POST /plugins/telltales/observations` with a Bearer token and CORS restricted to the local development origin. It is not a Signal K PUT endpoint and does not accept arbitrary WebSocket JSON.
+The plugin accepts only `POST /plugins/telltales-observations/observations` from an authenticated Signal K `readwrite` identity, with the plugin's configured Bearer token and CORS restricted to the local development origin. It is not a Signal K PUT endpoint and does not accept arbitrary WebSocket JSON.
 
 ## Mapping
 
