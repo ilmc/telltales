@@ -14,6 +14,8 @@ test('private boat profile file stays tab-local through community template selec
   await expect(page.locator('[data-template="heel-degrees"] .compatibility')).toContainText('AVAILABLE');
   await page.locator('[data-template="heel-degrees"]').getByRole('button',{name:'Use this display'}).click();
   await expect(page.locator('.sensor-group-hud')).toBeVisible();
+  await expect(page.locator('.subtitle')).toContainText('Private local profile');
+  await page.screenshot({path:'test-results/sensor-groups-private-profile-1540x720.png'});
   await expect(page.locator('[data-input="heel"] .meta')).toContainText('UNAVAILABLE');
   await expect(page).toHaveURL(/view=private-setup/);
   await page.reload();

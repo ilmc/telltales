@@ -35,7 +35,7 @@ export function mountPrivateProfileSetup({community,root=document.body}){
           if(!active)return;
           // Preserve profile only in this JS closure; do not navigate or serialize
           // any private data in the URL, storage, or BroadcastChannel.
-          mountSensorGroupHud({catalog:active,sessionId,templateId:template.id,root});
+          mountSensorGroupHud({catalog:active,sessionId,templateId:template.id,profileOnly:true,root});
         });
         card.append(heading,status,button);list.append(card);
       }
