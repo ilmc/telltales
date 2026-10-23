@@ -28,12 +28,10 @@ test('private profile import handles bad file without injecting markup',async({p
   await expect(page.locator('.inject')).toHaveCount(0);
 });
 
-// Temporary startup diagnostic to surface module/runtime errors in CI.
-test('diagnose app startup across the legacy route',async({page})=>{
-  page.on('pageerror',e=>console.log('STARTUP PAGEERROR:',e.message));
-  page.on('console',m=>{if(m.type()==='error')console.log('STARTUP CONSOLE:',m.text())});
-  page.on('requestfailed',r=>console.log('STARTUP FAILED REQUEST:',r.url(),r.failure()?.errorText));
+test('application module starts cleanly on the legacy simulator route',async({page})=>{
+  const errors=[];
+  page.on('pageerror',e=>errors.push(e.message));
   await page.goto('/?view=simulator');
-  console.log('STARTUP BODY:',(await page.locator('body').innerText()).slice(0,500));
   await expect(page.locator('.sim')).toBeVisible();
+  expect(errors).toEqual([]);
 });
