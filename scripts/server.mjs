@@ -1,3 +1,4 @@
+// scripts/server.mjs
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
@@ -73,7 +74,7 @@ export function createStaticServer({ root = DEFAULT_ROOT } = {}) {
 
 // The viewer browser never receives a Signal K bearer token. This loopback-only
 // bridge is enabled only by the iPhone launcher, which reads that token from
-// Keychain into this process environment.
+// private local configuration into this process environment.
 export function attachSignalKStreamProxy(server, { stream, token }) {
   if (!stream || !token) return;
   const clients = new WebSocketServer({ noServer: true, maxPayload: 2048 });

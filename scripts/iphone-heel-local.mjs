@@ -1,43 +1,78 @@
 // scripts/iphone-heel-local.mjs
-// Local-only launcher: ignored configuration is separate from macOS Keychain secrets.
+// Local-only launcher: one private XDG file keeps the experiment usable from any terminal.
 import { spawn, spawnSync } from 'node:child_process';
 import { randomInt } from 'node:crypto';
-import { chmod, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { chmod, lstat, mkdir, open, readFile, rename, rm } from 'node:fs/promises';
 import { get as httpsGet } from 'node:https';
-import { networkInterfaces } from 'node:os';
+import { homedir, networkInterfaces } from 'node:os';
 import net from 'node:net';
-import { resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const local = resolve(root, '.local');
-const configFile = resolve(local, 'iphone-heel.json');
-const stateFile = resolve(local, 'iphone-heel-processes.json');
-const service = 'io.github.ilmc.telltales.iphone-heel';
-const accounts = Object.freeze({
-  ingress: 'signalk-ingress-token',
-  producer: 'signalk-readwrite-token',
-  viewer: 'signalk-readonly-token',
-  pairing: 'current-pairing-code',
-});
-const keychainSaveProgram = `
-import Foundation
-import Security
-let service = CommandLine.arguments[1]
-let account = CommandLine.arguments[2]
-let value = FileHandle.standardInput.readDataToEndOfFile
-let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account]
-let attributes: [String: Any] = [kSecValueData as String: value]
-let result = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
-if result == errSecItemNotFound {
-  var added = query
-  added[kSecValueData as String] = value
-  if SecItemAdd(added as CFDictionary, nil) != errSecSuccess { exit(1) }
-} else if result != errSecSuccess { exit(1) }
-`;
+const configDirectory = resolve(
+  process.env.XDG_CONFIG_HOME || join(homedir(), '.config'),
+  'telltales'
+);
+const configFile = join(configDirectory, 'iphone-heel.json');
+const stateFile = join(configDirectory, 'iphone-heel-processes.json');
+const secretNames = Object.freeze(['ingress', 'producer', 'viewer']);
+
+function credentials(value) {
+  const result = value?.credentials;
+  if (!result || typeof result !== 'object' || Array.isArray(result)) return {};
+  for (const name of secretNames)
+    if (name in result && typeof result[name] !== 'string')
+      throw Error(`local iPhone-heel configuration has an invalid ${name} credential`);
+  return result;
+}
+
+async function privateDirectory(directory) {
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  const info = await lstat(directory);
+  if (!info.isDirectory() || info.isSymbolicLink())
+    throw Error(`refusing unsafe local configuration directory: ${directory}`);
+  if (info.mode & 0o077)
+    throw Error(
+      `local configuration directory must not be group- or world-accessible: ${directory}`
+    );
+}
+
+async function privateFile(file) {
+  const info = await lstat(file);
+  if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1)
+    throw Error(`refusing unsafe local configuration file: ${file}`);
+  if (info.mode & 0o077)
+    throw Error(`local configuration file must not be group- or world-accessible: ${file}`);
+}
+
+async function atomicWrite(file, value) {
+  const directory = dirname(file);
+  await privateDirectory(directory);
+  const temporary = join(directory, `.${process.pid}-${randomInt(1_000_000)}.tmp`);
+  let handle;
+  try {
+    handle = await open(
+      temporary,
+      constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW,
+      0o600
+    );
+    await handle.writeFile(`${JSON.stringify(value, null, 2)}\n`);
+    await handle.sync();
+    await handle.close();
+    handle = null;
+    await rename(temporary, file);
+    await chmod(file, 0o600);
+  } catch (error) {
+    await handle?.close().catch(() => {});
+    await rm(temporary, { force: true }).catch(() => {});
+    throw error;
+  }
+}
 
 export function validateConfig(value) {
-  if (!value || value.version !== 1 || typeof value.host !== 'string' || !value.host)
+  if (!value || value.version !== 2 || typeof value.host !== 'string' || !value.host)
     throw Error(
       'local iPhone-heel configuration is missing; run make iphone-heel-setup TELLTALES_SERVER_HOST=…'
     );
@@ -49,6 +84,7 @@ export function validateConfig(value) {
       throw Error(`local iPhone-heel configuration has an invalid ${key}`);
     }
   }
+  credentials(value);
   return Object.freeze(value);
 }
 export function signalKLoginUrl(config) {
@@ -87,10 +123,11 @@ export async function renewSignalKCredential({
   }
   if (!body || typeof body.token !== 'string' || !body.token)
     throw Error('Signal K login returned no usable credential; no credential changed');
-  save(role, body.token);
+  await save(role, body.token);
 }
 export async function readConfig(file = configFile) {
   try {
+    await privateFile(file);
     return validateConfig(JSON.parse(await readFile(file, 'utf8')));
   } catch (error) {
     if (error.code === 'ENOENT')
@@ -109,18 +146,41 @@ export async function writeConfig({ host, signalkPort = 3000 }, file = configFil
     Number(signalkPort) > 65535
   )
     throw Error('SIGNALK_PORT must be a valid port');
+  const existing = await readConfig(file).catch((error) => {
+    if (error.message.startsWith('no local iPhone-heel configuration')) return null;
+    throw error;
+  });
   const value = {
-    version: 1,
+    version: 2,
     host,
     signalkIngress: `http://127.0.0.1:${signalkPort}/plugins/telltales-observations/observations`,
     signalkStream: `ws://127.0.0.1:${signalkPort}/signalk/v1/stream?subscribe=none`,
+    credentials: credentials(existing),
   };
-  await mkdir(resolve(file, '..'), { recursive: true, mode: 0o700 });
-  const temporary = `${file}.${process.pid}.tmp`;
-  await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });
-  await rename(temporary, file);
-  await chmod(file, 0o600);
+  await atomicWrite(file, value);
   return Object.freeze(value);
+}
+export async function saveSecret(name, value, file = configFile) {
+  if (!secretNames.includes(name) || !value) throw Error(`missing ${name} credential`);
+  const config = await readConfig(file);
+  await atomicWrite(file, {
+    ...config,
+    credentials: { ...credentials(config), [name]: value },
+  });
+}
+export async function readSecret(name, file = configFile) {
+  if (!secretNames.includes(name)) throw Error(`missing ${name} credential`);
+  const value = credentials(await readConfig(file))[name];
+  if (!value) throw Error(`missing ${name} credential`);
+  return value;
+}
+export function credentialExpiry(token) {
+  try {
+    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8'));
+    return Number.isFinite(payload.exp) ? new Date(payload.exp * 1000) : null;
+  } catch {
+    return null;
+  }
 }
 export function suggestedLanHosts(interfaces = networkInterfaces()) {
   return Object.values(interfaces)
@@ -148,17 +208,15 @@ const portOpen = (port, host = '127.0.0.1') =>
   });
 async function readState() {
   try {
+    await privateFile(stateFile);
     return JSON.parse(await readFile(stateFile, 'utf8'));
-  } catch {
-    return {};
+  } catch (error) {
+    if (error.code === 'ENOENT') return {};
+    throw error;
   }
 }
 async function saveState(value) {
-  await mkdir(local, { recursive: true, mode: 0o700 });
-  const temporary = `${stateFile}.${process.pid}.tmp`;
-  await writeFile(temporary, `${JSON.stringify(value)}\n`, { mode: 0o600 });
-  await rename(temporary, stateFile);
-  await chmod(stateFile, 0o600);
+  await atomicWrite(stateFile, value);
 }
 async function register(role, pid) {
   const state = await readState();
@@ -170,44 +228,33 @@ async function unregister(role) {
   delete state[role];
   await saveState(state);
 }
-function keychain(args) {
-  const result = spawnSync('security', args, { encoding: 'utf8' });
-  if (result.error)
-    throw Error('macOS Keychain command is unavailable; this launcher requires the security tool');
-  if (result.status !== 0)
-    throw Error(result.stderr.trim() || 'macOS Keychain did not provide the requested credential');
-  return result.stdout.replace(/\n$/, '');
+async function savePairing(code) {
+  const state = await readState();
+  state.pairing = code;
+  await saveState(state);
 }
-export function readSecret(name) {
-  return keychain(['find-generic-password', '-s', service, '-a', accounts[name], '-w']);
+async function clearPairing() {
+  const state = await readState();
+  delete state.pairing;
+  await saveState(state);
 }
-export function saveSecret(name, value) {
-  if (!accounts[name] || !value) throw Error(`missing ${name} credential`);
-  // security(1) requires the password as an argv value. Swift's Security
-  // bridge lets the provisioning helper deliver it over stdin instead.
-  const result = spawnSync('swift', ['-e', keychainSaveProgram, service, accounts[name]], {
-    encoding: 'utf8',
-    input: value,
-  });
-  if (result.error || result.status !== 0)
-    throw Error(
-      'macOS Keychain did not save the credential; existing Keychain items were not changed'
-    );
-}
-export function deleteSecret(name) {
+async function requiredSecret(name) {
+  let value;
   try {
-    keychain(['delete-generic-password', '-s', service, '-a', accounts[name]]);
-  } catch {}
-}
-function requiredSecret(name) {
-  try {
-    return readSecret(name);
-  } catch {
+    value = await readSecret(name);
+  } catch (error) {
+    if (!/missing .* credential/.test(error.message)) throw error;
     const recovery = ['producer', 'viewer'].includes(name)
       ? `make iphone-heel-credentials-${name}`
       : 'make iphone-heel-credentials-ingress';
-    throw Error(`missing or revoked ${name} Keychain credential; run ${recovery}`);
+    throw Error(`missing or expired ${name} credential; run ${recovery}`);
   }
+  const expiresAt = ['producer', 'viewer'].includes(name) && credentialExpiry(value);
+  if (expiresAt && expiresAt <= new Date())
+    throw Error(
+      `${name} credential expired at ${expiresAt.toISOString()}; run make iphone-heel-credentials-${name}`
+    );
+  return value;
 }
 export const createPairingCode = (random = randomInt) => `${random(1_000_000)}`.padStart(6, '0');
 export function serviceLaunchDecision({ occupied, owned }) {
@@ -282,10 +329,13 @@ async function inspectService(role) {
   return decision;
 }
 function openHud() {
-  spawn('open', ['http://127.0.0.1:4173/?view=hud&template=sailing-hud&mode=signalk'], {
+  const opener = process.platform === 'darwin' ? 'open' : 'xdg-open';
+  const browser = spawn(opener, ['http://127.0.0.1:4173/?view=hud&template=sailing-hud&mode=signalk'], {
     detached: true,
     stdio: 'ignore',
-  }).unref();
+  });
+  browser.once('error', () => {});
+  browser.unref();
 }
 async function stopRole(role) {
   const state = await readState(),
@@ -319,11 +369,11 @@ async function run(role, { background = false, decision } = {}) {
     if (launch === 'reuse') {
       return console.log('Reusing the existing experiment-owned phone producer.');
     }
-    env.SIGNALK_TOKEN = requiredSecret('producer');
-    env.SIGNALK_INGRESS_TOKEN = requiredSecret('ingress');
+    env.SIGNALK_TOKEN = await requiredSecret('producer');
+    env.SIGNALK_INGRESS_TOKEN = await requiredSecret('ingress');
     env.SIGNALK_INGRESS = config.signalkIngress;
     const pairing = createPairingCode();
-    saveSecret('pairing', pairing);
+    await savePairing(pairing);
     env.IPHONE_HEEL_PAIRING_CODE = pairing;
     command = ['node', 'experiments/iphone-heel/server.mjs'];
   } else {
@@ -334,7 +384,7 @@ async function run(role, { background = false, decision } = {}) {
       return;
     }
     env.TELLTALES_SIGNALK_STREAM = config.signalkStream;
-    env.TELLTALES_SIGNALK_STREAM_TOKEN = requiredSecret('viewer');
+    env.TELLTALES_SIGNALK_STREAM_TOKEN = await requiredSecret('viewer');
     command = ['node', 'scripts/server.mjs'];
   }
   const child = spawn(command[0], command.slice(1), {
@@ -343,7 +393,7 @@ async function run(role, { background = false, decision } = {}) {
       env,
       stdio: background ? 'ignore' : 'inherit',
     }),
-    clear = () => role === 'producer' && deleteSecret('pairing');
+    clear = () => role === 'producer' && void clearPairing();
   await register(role, child.pid);
   if (background) child.unref();
   try {
@@ -374,7 +424,7 @@ async function start() {
     throw Error(
       'Signal K is not responding on its saved loopback endpoint; it was not started or changed.'
     );
-  for (const name of ['producer', 'ingress', 'viewer']) requiredSecret(name);
+  for (const name of ['producer', 'ingress', 'viewer']) await requiredSecret(name);
   const plan = coordinatedLaunchPlan({
     producer: await inspectService('producer'),
     hud: await inspectService('hud'),
@@ -398,7 +448,9 @@ async function status() {
     web: await portOpen(4173),
     processes: {},
   };
-  for (const [role, item] of Object.entries(state)) {
+  for (const role of ['producer', 'hud']) {
+    const item = state[role];
+    if (!item) continue;
     try {
       process.kill(item.pid, 0);
       report.processes[role] = 'running';
@@ -410,7 +462,9 @@ async function status() {
 }
 async function stop() {
   const state = await readState();
-  for (const [role, item] of Object.entries(state)) {
+  for (const role of ['producer', 'hud']) {
+    const item = state[role];
+    if (!item) continue;
     const command = spawnSync('ps', ['-p', `${item.pid}`, '-o', 'command='], {
       encoding: 'utf8',
     }).stdout;
@@ -458,7 +512,7 @@ async function main() {
         .on('data', (part) => (text += part))
         .on('end', () => resolve(text.trim()));
     });
-    saveSecret(arguments_[0], value);
+    await saveSecret(arguments_[0], value);
   } else if (command === 'renew-token') {
     const [username = '', ...password] = await new Promise((resolve) => {
       let text = '';
@@ -473,9 +527,12 @@ async function main() {
       username,
       password: password.join('\n').replace(/\n$/, ''),
     });
-    console.log(`Renewed ${arguments_[0]} Signal K credential in macOS Keychain.`);
-  } else if (command === 'pairing-code') console.log(requiredSecret('pairing'));
-  else if (command === 'host') console.log((await readConfig()).host);
+    console.log(`Renewed ${arguments_[0]} Signal K credential in private local configuration.`);
+  } else if (command === 'pairing-code') {
+    const pairing = (await readState()).pairing;
+    if (!pairing) throw Error('no active pairing code; start the phone producer first');
+    console.log(pairing);
+  } else if (command === 'host') console.log((await readConfig()).host);
   else if (command === 'producer' || command === 'hud') await run(command);
   else if (command === 'start') await start();
   else if (command === 'status') await status();

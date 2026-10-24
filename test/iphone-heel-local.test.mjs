@@ -1,6 +1,6 @@
 // test/iphone-heel-local.test.mjs
 import assert from 'node:assert/strict';
-import { mkdtemp, stat } from 'node:fs/promises';
+import { lstat, mkdtemp, stat, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -12,26 +12,43 @@ import {
   signalKLoginUrl,
   serviceLaunchDecision,
   readConfig,
+  readSecret,
+  saveSecret,
   setupDecision,
   validateConfig,
   writeConfig,
 } from '../scripts/iphone-heel-local.mjs';
 
-test('local iPhone settings persist only non-secret host and endpoints with private permissions', async () => {
+test('local iPhone settings and credentials persist with private permissions', async () => {
   const file = join(await mkdtemp(join(tmpdir(), 'telltales-local-settings-')), 'iphone-heel.json');
   const saved = await writeConfig({ host: '10.25.1.25', signalkPort: 3010 }, file);
   assert.equal(saved.host, '10.25.1.25');
   assert.match(saved.signalkIngress, /127\.0\.0\.1:3010/);
   assert.deepEqual(await readConfig(file), saved);
   assert.equal((await stat(file)).mode & 0o777, 0o600);
-  assert.doesNotMatch(JSON.stringify(saved), /token|secret|credential/i);
+  assert.equal((await stat(join(file, '..'))).mode & 0o777, 0o700);
+  await saveSecret('producer', 'writer-token', file);
+  await saveSecret('ingress', 'ingress-token', file);
+  assert.equal(await readSecret('producer', file), 'writer-token');
+  assert.equal((await readConfig(file)).credentials.ingress, 'ingress-token');
+  assert.equal((await readConfig(file)).credentials.viewer, undefined);
+});
+
+test('private configuration rejects a symlink before it can read credentials', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'telltales-local-settings-')),
+    target = join(directory, 'target.json'),
+    file = join(directory, 'iphone-heel.json');
+  await writeConfig({ host: '10.25.1.25' }, target);
+  await symlink(target, file);
+  await assert.rejects(readConfig(file), /unsafe local configuration file/);
+  assert.equal((await lstat(file)).isSymbolicLink(), true);
 });
 
 test('local iPhone settings reject absent host and invalid endpoints before launch', () => {
   assert.throws(
     () =>
       validateConfig({
-        version: 1,
+        version: 2,
         host: '',
         signalkIngress: 'http://127.0.0.1:3000',
         signalkStream: 'ws://127.0.0.1:3000',
@@ -41,7 +58,7 @@ test('local iPhone settings reject absent host and invalid endpoints before laun
   assert.throws(
     () =>
       validateConfig({
-        version: 1,
+        version: 2,
         host: '10.25.1.25',
         signalkIngress: 'not a URL',
         signalkStream: 'ws://127.0.0.1:3000',
@@ -114,7 +131,7 @@ test('credential renewal logs in at the saved Signal K endpoint and replaces onl
   assert.equal(signalKLoginUrl(config), 'http://127.0.0.1:3000/signalk/v1/auth/login');
 });
 
-test('credential renewal preserves existing Keychain data after rejected login', async () => {
+test('credential renewal preserves existing private configuration after rejected login', async () => {
   let saved = false;
   await assert.rejects(
     renewSignalKCredential({

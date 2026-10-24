@@ -1,7 +1,6 @@
 #!/bin/sh
 # scripts/iphone-heel-credentials.sh
 set -eu
-[ "$(uname -s)" = Darwin ] || { echo 'iPhone heel credentials require macOS Keychain.' >&2; exit 2; }
 save() { name=$1; label=$2; printf '%s: ' "$label" >&2; stty -echo; IFS= read -r value; stty echo; printf '\n' >&2; test -n "$value" || { echo 'credential was empty; no change made' >&2; exit 2; }; printf '%s' "$value" | node scripts/iphone-heel-local.mjs save-secret "$name"; unset value; }
 renew() {
   name=$1
@@ -38,4 +37,4 @@ case "${1:-}" in
     ;;
   *) echo 'usage: make iphone-heel-credentials-{producer|viewer|ingress|all}' >&2; exit 2 ;;
 esac
-echo 'Stored only the requested credential in macOS Keychain; no other local credential was changed.'
+echo 'Stored only the requested credential in the private local configuration; no other credential was changed.'

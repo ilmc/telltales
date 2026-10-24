@@ -16,7 +16,7 @@ help:
 	  '                           Prepare/reuse a trusted local Telltales server identity' \
 	  'make iphone-heel-setup TELLTALES_SERVER_HOST=host-or-ip' \
 	  '                           Save/reuse non-secret local settings and TLS identity' \
-	  'make iphone-heel-credentials-producer Renew only the Signal K producer credential in Keychain' \
+	  'make iphone-heel-credentials-producer Renew only the Signal K producer credential in private local config' \
 	  'make iphone-heel           Run paired iPhone producer from any Terminal' \
 	  'make iphone-heel-start     Start/reuse phone producer and authenticated HUD' \
 	  'make iphone-heel-pairing-code Privately reveal the current short pairing code' \
@@ -36,7 +36,7 @@ end-to-end-tests tests-e2e:
 	npm run test:signalk:e2e
 
 # The reusable server identity is checked rather than overwritten. Credentials stay in
-# macOS Keychain; each producer launch creates a separate short pairing code.
+# private XDG configuration; each producer launch creates a separate short pairing code.
 local-server-cert:
 	@test -n "$(TELLTALES_SERVER_HOST)" || { echo 'set TELLTALES_SERVER_HOST to the Mac LAN hostname or IP' >&2; exit 2; }
 	@sh scripts/prepare-local-server-certificate.sh "$(TELLTALES_SERVER_HOST)" "$(TELLTALES_SERVER_CERT_DIR)"
@@ -72,7 +72,7 @@ iphone-heel-stop:
 
 iphone-heel-hud:
 	@printf '%s\n' 'HUD: http://127.0.0.1:4173/?view=hud&template=sailing-hud&mode=signalk' \
-	  'A local same-origin stream proxy uses the Keychain credential; no token is in this URL.'
+	  'A local same-origin stream proxy uses the private local credential; no token is in this URL.'
 	@node scripts/iphone-heel-local.mjs hud
 
 iphone-heel-test:
