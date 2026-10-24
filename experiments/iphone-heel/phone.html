@@ -1,0 +1,41 @@
+<!-- experiments/iphone-heel/phone.html -->
+<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1" /><title>
+  Telltales iPhone heel</title
+><style>
+  body {
+    background: #07131a;
+    color: #eefaff;
+    font: 17px system-ui;
+    margin: auto;
+    max-width: 34rem;
+    padding: 1.5rem;
+  }
+  .reading {
+    font-size: 5rem;
+    font-weight: 800;
+  }
+  button,
+  input {
+    font: inherit;
+    padding: 0.8rem;
+    margin: 0.25rem;
+  }
+  .status {
+    padding: 0.8rem;
+    background: #112a35;
+  }
+</style>
+<h1>iPhone heel sensor</h1>
+<p>
+  Face-up portrait; phone top forward. Temporary phone-relative reading only: negative port,
+  positive starboard.
+</p>
+<p id="pairing">
+  <input id="code" placeholder="Pairing code" /><button id="pair">Pair iPhone</button>
+</p>
+<div class="reading"><span id="value">—</span><small>°</small></div>
+<p id="side">Awaiting secure pairing</p>
+<button id="enable" disabled>Enable Motion</button><button id="zero" disabled>Zero here</button
+><button id="reset" disabled>Reset mount</button>
+<p class="status" id="status">Checking secure pairing…</p>
+<script type="module" src="./phone.mjs"></script>

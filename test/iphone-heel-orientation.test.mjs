@@ -32,7 +32,7 @@ test('out-of-range inclinations and edge-on mounting fail closed', () => {
   }
   assert.match(
     createHeelOrientation().calibrate({ x: 0, y: 9.81, z: 0 }).reason,
-    /Unsupported mount/,
+    /Unsupported mount/
   );
 });
 

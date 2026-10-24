@@ -43,7 +43,12 @@ export function createHeelOrientation({
       return { ok: false, reason: 'Unreliable gravity vector', gravity, magnitude };
     }
     if (projected / magnitude < minProjectionFraction) {
-      return { ok: false, reason: 'Unsupported mount: phone too close to edge-on', gravity, magnitude };
+      return {
+        ok: false,
+        reason: 'Unsupported mount: phone too close to edge-on',
+        gravity,
+        magnitude,
+      };
     }
     return {
       ok: true,
@@ -73,7 +78,7 @@ export function createHeelOrientation({
     const heel =
       (Math.atan2(
         reference.z * vector.x - reference.x * vector.z,
-        reference.x * vector.x + reference.z * vector.z,
+        reference.x * vector.x + reference.z * vector.z
       ) *
         180) /
       Math.PI;
