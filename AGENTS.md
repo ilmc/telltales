@@ -30,7 +30,7 @@ For hand-maintained commentable text files, put a concise repository-relative pa
 
 Treat meaningful source subdirectories as independently navigable subprojects: add a local `README.md` explaining **why** the boundary exists, its design choices, constraints, invariants and trade-offs; include minimal pointers to entry points, interfaces and tests so readers can find the implementation. The code remains the authority for **what** it does, so do not restate functions or narrate file contents. Avoid duplicate governance or boilerplate for tiny, generated, or asset-only folders.
 
-Prefer readable, consistently formatted code, cohesive modules, explicit names and concise comments explaining _why_: contracts, units/reference frames, provenance, failure modes, trust boundaries, subtle lifecycle behaviour and trade-offs. Avoid obvious line-by-line narration and unnecessary boilerplate. The [engineering review](ENGINEERING-REVIEW.md) tracks the proposed formatter/linter rollout under [Issue #23](https://github.com/ilmc/telltales/issues/23); do not describe those tools as already enforced.
+Prefer readable, consistently formatted code, cohesive modules, explicit names and concise comments explaining _why_: contracts, units/reference frames, provenance, failure modes, trust boundaries, subtle lifecycle behaviour and trade-offs. Avoid obvious line-by-line narration and unnecessary boilerplate. The [engineering review](ENGINEERING-REVIEW.md) records the formatter/linter rollout under [Issue #23](https://github.com/ilmc/telltales/issues/23). This revision runs `format:check` and `lint` in its core CI workflow; distinguish workflow checks from branch protection or required checks, which need separately verified repository settings.
 
 ## Evidence and decisions
 
