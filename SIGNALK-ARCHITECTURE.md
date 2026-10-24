@@ -14,11 +14,9 @@ The supported runtime observation contract will be **Signal K**. Normal live ope
 
 These are **two independent installable components**, plus a shared specification/library, not necessarily two server plugins:
 
-| Component | Default packaging candidate | Function |
-| --- | --- | --- |
-| Producer/integration assistant | Optional Signal K server plugin **or** standalone adapter where required | Discover supported instrument integration, normalise/calibrate and publish standard observations; reuse established plugins and drivers |
-| Consumer/HUD | Signal K webapp | Read observation streams, source/freshness metadata and user-selected groups; compose sailing widgets and external surfaces |
-| Shared sensor-group contract | Versioned schema, validator, examples and import/export tooling | Describe selections independently of the producer and HUD; translate to supported Signal K configuration where possible |
+- **Producer/integration assistant:** optional Signal K server plugin or standalone adapter where required. Discover supported instrument integrations, normalise/calibrate and publish standard observations; reuse established plugins and drivers.
+- **Consumer/HUD:** Signal K webapp. Read observation streams, source/freshness metadata and selected groups; compose sailing widgets and external surfaces.
+- **Shared sensor-group contract:** versioned schema, validator, examples and import/export tooling. Describe selections independently of the producer and HUD; translate to supported Signal K configuration where possible.
 
 **Install only what is needed.** An existing Signal K GNSS or wind adapter needs neither Telltales producer nor its specific plugin. A different Signal K display can consume a Telltales-origin heel reading. A Telltales HUD can consume ordinary Signal K observations without a Telltales producer.
 
