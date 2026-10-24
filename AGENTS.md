@@ -8,6 +8,8 @@ Read the current governing issue or agreed change, plus the relevant parts of [R
 
 Assess the request before coding. Challenge a proposed implementation when repository evidence shows a smaller or safer route, but do not silently weaken accepted requirements.
 
+Follow [CODE-STYLE.md](CODE-STYLE.md) for the repository's source-readability policy.
+
 ## Default workflow
 
 For an ordinary substantive change:
@@ -21,6 +23,14 @@ For an ordinary substantive change:
 7. Merge only with authorised merge authority and only after required review/checks are satisfied. Close the issue through the accepted PR when appropriate.
 
 Use the repository pull-request template. Keep the workflow tool-agnostic: use available GitHub, local Git, CI or other capable tooling without making one commercial bot a dependency.
+
+## Source readability and orientation
+
+For hand-maintained commentable text files, put a concise repository-relative path identifier first (for example `// src/app.mjs`). Use the file's native comment syntax and update the identifier when moving the file. Do not violate required shebangs, parsers, mandated file headers, or strict data formats; generated, vendored and binary files are exempt.
+
+Treat meaningful source subdirectories as independently navigable subprojects: add a local `README.md` explaining **why** the boundary exists, its design choices, constraints, invariants and trade-offs; include minimal pointers to entry points, interfaces and tests so readers can find the implementation. The code remains the authority for **what** it does, so do not restate functions or narrate file contents. Avoid duplicate governance or boilerplate for tiny, generated, or asset-only folders.
+
+Prefer readable, consistently formatted code, cohesive modules, explicit names and concise comments explaining _why_: contracts, units/reference frames, provenance, failure modes, trust boundaries, subtle lifecycle behaviour and trade-offs. Avoid obvious line-by-line narration and unnecessary boilerplate. The [engineering review](ENGINEERING-REVIEW.md) records the formatter/linter rollout under [Issue #23](https://github.com/ilmc/telltales/issues/23). This revision runs `format:check` and `lint` in its core CI workflow; distinguish workflow checks from branch protection or required checks, which need separately verified repository settings.
 
 ## Evidence and decisions
 

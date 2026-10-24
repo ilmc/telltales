@@ -1,1 +1,52 @@
-.hud-full .hud-speed{grid-column:1;grid-row:1 / span 2}.hud-full .hud-heel{grid-column:2;grid-row:1}.hud-full .hud-wind{grid-column:3;grid-row:1}.hud-full .hud-stw{grid-column:2;grid-row:2}.hud-full .hud-depth{grid-column:3;grid-row:2}.hud-full .heel-value{font-size:clamp(4rem,7vw,7rem)}.hud-full .heel-gauge{bottom:15%;width:70%}.hud-full .hud-stw .speed-number{font-size:clamp(3rem,4.8vw,4.8rem);line-height:.85}.hud-full .hud-stw .speed-history{opacity:.55}.hud-full .hud-stw h2,.hud-full .hud-depth h2{font-size:clamp(.66rem,.85vw,.82rem)}.hud-full .depth-number{font-size:clamp(2.8rem,4vw,4.1rem)}.hud-full .depth-reference{top:22%;font-size:clamp(.48rem,.62vw,.6rem)}.hud-full .wind-speed{font-size:clamp(2.7rem,4.5vw,4.8rem)}.hud-full .wind-dial{width:min(72%,230px);bottom:10%}
+.hud-full .hud-speed {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+.hud-full .hud-heel {
+  grid-column: 2;
+  grid-row: 1;
+}
+.hud-full .hud-wind {
+  grid-column: 3;
+  grid-row: 1;
+}
+.hud-full .hud-stw {
+  grid-column: 2;
+  grid-row: 2;
+}
+.hud-full .hud-depth {
+  grid-column: 3;
+  grid-row: 2;
+}
+.hud-full .heel-value {
+  font-size: clamp(4rem, 7vw, 7rem);
+}
+.hud-full .heel-gauge {
+  bottom: 15%;
+  width: 70%;
+}
+.hud-full .hud-stw .speed-number {
+  font-size: clamp(3rem, 4.8vw, 4.8rem);
+  line-height: 0.85;
+}
+.hud-full .hud-stw .speed-history {
+  opacity: 0.55;
+}
+.hud-full .hud-stw h2,
+.hud-full .hud-depth h2 {
+  font-size: clamp(0.66rem, 0.85vw, 0.82rem);
+}
+.hud-full .depth-number {
+  font-size: clamp(2.8rem, 4vw, 4.1rem);
+}
+.hud-full .depth-reference {
+  top: 22%;
+  font-size: clamp(0.48rem, 0.62vw, 0.6rem);
+}
+.hud-full .wind-speed {
+  font-size: clamp(2.7rem, 4.5vw, 4.8rem);
+}
+.hud-full .wind-dial {
+  width: min(72%, 230px);
+  bottom: 10%;
+}

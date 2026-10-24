@@ -12,14 +12,14 @@ The plugin accepts only `POST /plugins/telltales-observations/observations` from
 
 ## Mapping
 
-| Telltales observation | Signal K path | Signal K unit |
-| --- | --- | --- |
-| SOG | `navigation.speedOverGround` | m/s |
-| STW | `navigation.speedThroughWater` | m/s |
-| apparent wind speed | `environment.wind.speedApparent` | m/s |
-| apparent wind angle | `environment.wind.angleApparent` | radians |
-| heel | `navigation.attitude.roll` | radians |
-| depth | `environment.depth.telltalesUnknownReference` | metres |
+| Telltales observation | Signal K path                                 | Signal K unit |
+| --------------------- | --------------------------------------------- | ------------- |
+| SOG                   | `navigation.speedOverGround`                  | m/s           |
+| STW                   | `navigation.speedThroughWater`                | m/s           |
+| apparent wind speed   | `environment.wind.speedApparent`              | m/s           |
+| apparent wind angle   | `environment.wind.angleApparent`              | radians       |
+| heel                  | `navigation.attitude.roll`                    | radians       |
+| depth                 | `environment.depth.telltalesUnknownReference` | metres        |
 
 Angles are bow-relative: zero ahead, negative port, positive starboard. Signal K's relative angular convention is radians with positive starboard/clockwise, so no sign inversion is applied. There is no standard Signal K depth path for an unknown datum; the explicit Telltales extension prevents falsely asserting surface, transducer, or keel reference.
 
