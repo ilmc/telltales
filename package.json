@@ -6,6 +6,7 @@
     "start": "node scripts/server.mjs",
     "test": "node --test test/*.test.mjs",
     "test:browser": "playwright test",
+    "test:signalk:e2e": "node test/signalk-e2e.mjs",
     "validate:config": "node scripts/validate-config.mjs"
   },
   "devDependencies": {

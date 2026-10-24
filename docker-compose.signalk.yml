@@ -1,10 +1,20 @@
 services:
+  signalk-init:
+    image: signalk/signalk-server@sha256:92c558f9dc721ef6ab87c452c93e623a6580f0cfe21aababfbec363a3a04ef8b
+    user: "0:0"
+    entrypoint: ["sh", "-c"]
+    command: ["mkdir -p /home/node/.signalk && chown -R 1000:1000 /home/node/.signalk && su node -s /bin/sh -c 'cd /home/node/.signalk && npm pack /plugin --pack-destination . && npm install --package-lock=false --ignore-scripts ./*.tgz'"]
+    volumes:
+      - signalk-data:/home/node/.signalk
+      - ./signalk-plugin-telltales:/plugin:ro
   signalk:
     # Official arm64 build digest for sha-3e12725-24.x, verified from Docker Hub.
     image: signalk/signalk-server@sha256:92c558f9dc721ef6ab87c452c93e623a6580f0cfe21aababfbec363a3a04ef8b
-    ports: ["127.0.0.1:3000:3000"]
+    ports: ["127.0.0.1:${SIGNALK_PORT:-3000}:3000"]
+    depends_on:
+      signalk-init:
+        condition: service_completed_successfully
     volumes:
-      - ./signalk-plugin-telltales:/home/node/.signalk-node-server/node_modules/signalk-telltales-observations:ro
-      - signalk-data:/home/node/.signalk-node-server
+      - signalk-data:/home/node/.signalk
 volumes:
   signalk-data:

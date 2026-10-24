@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Telltales — multi-origin synthetic demo</title>
+<style>
+:root{font-family:system-ui,sans-serif;color:#f3f6fa;background:#0b1521}*{box-sizing:border-box}
+body{margin:0;padding:clamp(12px,2vw,30px)}header{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}h1{font-size:clamp(22px,2.4vw,36px);margin:0}p{color:#bfceda}button,select{font:inherit;border:1px solid #7993a8;background:#14293a;color:white;padding:10px 14px;border-radius:8px;cursor:pointer}button:focus,select:focus{outline:2px solid #ecba62}.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:28px 0}.instrument{min-height:245px;padding:22px;border:1px solid #476072;background:#122639;border-radius:18px}.instrument h2{font-size:clamp(17px,2vw,24px);margin:0}.reading{font-weight:700;font-variant-numeric:tabular-nums;font-size:clamp(38px,6vw,88px);margin:18px 0 6px}.reading small{font-size:0.28em}.meta{font-size:15px;color:#c5d6e1;line-height:1.5}.unavailable{color:#ffb992}.status{font-weight:700;color:#b7e5ba}.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.banner{font-size:14px;color:#ffe1a9}footer{font-size:14px;color:#bbcad8}
+@media(max-width:750px){.board{grid-template-columns:1fr}.instrument{min-height:170px}.reading{font-size:44px;margin:8px 0}}
+.sensor-group-hud{min-height:100vh}.sensor-group-hud header{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}.sensor-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:28px 0}.sensor-card{min-height:245px;padding:22px;border:1px solid #476072;background:#122639;border-radius:18px}.sensor-card h2{font-size:clamp(17px,2vw,24px);margin:0}.sensor-card .reading{font-weight:700;font-variant-numeric:tabular-nums;font-size:clamp(38px,6vw,88px);margin:18px 0 6px}.sensor-card .reading small{font-size:.28em}@media(max-width:750px){.sensor-grid{grid-template-columns:1fr}.sensor-card{min-height:170px}.sensor-card .reading{font-size:44px;margin:8px 0}}
+</style></head>
+<body data-sensor-groups-demo="true">
+<script type="module" src="./src/sensor-groups-demo.mjs"></script></body></html>

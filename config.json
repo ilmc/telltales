@@ -272,6 +272,7 @@
             }
         },
         {"id":"primary-stw","widget":"speed","inputs":{"speed":"vessel.speedThroughWater"},"props":{"mode":"combined","title":"Speed through water (STW)","historySeconds":120,"showUnits":true,"scale":{"min":0,"max":12},"historyOpacity":0.65,"numericPosition":"center"}},
+        {"id":"primary-heel","widget":"heel","inputs":{"heel":"vessel.heel"},"props":{"title":"Heel"}},
         {"id":"depth-number","widget":"depth","inputs":{"depth":"environment.depth"},"props":{"mode":"number","title":"Depth","showUnits":true,"showReference":true,"showScale":true,"referenceLabel":"REFERENCE UNKNOWN / UNCALIBRATED","scale":{"min":0,"max":30}}},
         {"id":"primary-depth","widget":"depth","inputs":{"depth":"environment.depth"},"props":{"mode":"combined","title":"Depth","showUnits":true,"showReference":true,"showScale":true,"referenceLabel":"REFERENCE UNKNOWN / UNCALIBRATED","scale":{"min":0,"max":30}}},
         {
@@ -291,7 +292,11 @@
             "widget": "wind",
             "inputs": {"speed": "environment.wind.apparentSpeed", "angle": "environment.wind.apparentAngle"},
             "props": {"mode": "combined", "title": "Apparent wind", "showUnits": true, "showAngle": true, "showPortStarboard": true, "speedScale": {"min": 0, "max": 40}, "pointerStyle": "arrow", "maxSkewMs": 5000}
-        }
+        },
+        {"id":"synthetic-sog","widget":"sensor-reading","props":{"binding":"sog","title":"Phone SOG · own vessel"}},
+        {"id":"synthetic-remote-wind","widget":"sensor-reading","props":{"binding":"remoteWind","title":"Other boat · apparent wind"}},
+        {"id":"synthetic-shore-wind","widget":"sensor-reading","props":{"binding":"shoreWind","title":"Shore station · local wind"}},
+        {"id":"external-surface","widget":"surface","props":{"title":"External visual surface","channel":"telltales.surface.synthetic.v1","nativeSize":{"width":720,"height":720},"fit":"contain","maxFrameAgeMs":3500}}
     ],
   "templates": [
     {
@@ -313,6 +318,21 @@
       "id": "sailing-hud-full",
       "widgets": ["primary-speed", "primary-wind", "primary-depth", "primary-stw"],
       "layout": {"referenceWidth": 1540, "referenceHeight": 720, "slots": {"speed": "main", "heel": "heel", "wind": "wind", "depth": "depth", "stw": "stw"}}
+    }
+    ,{
+      "id": "synthetic-provenance-hud",
+      "widgets": ["synthetic-sog", "synthetic-remote-wind", "synthetic-shore-wind"],
+      "layout": {"referenceWidth": 1540, "referenceHeight": 720, "slots": {"synthetic-sog":"port", "synthetic-remote-wind":"main", "synthetic-shore-wind":"starboard"}}
+    }
+    ,{
+      "id": "zo-hud-surface",
+      "widgets": ["primary-speed", "primary-wind", "primary-depth", "external-surface"],
+      "layout": {"referenceWidth": 1540, "referenceHeight": 720, "slots": {"primary-speed":"port", "external-surface":"main", "primary-wind":"starboard-top", "primary-depth":"starboard-bottom"}}
+    }
+    ,{
+      "id": "surface-hud-instruments",
+      "widgets": ["primary-speed", "primary-heel", "primary-wind", "primary-depth", "external-surface"],
+      "layout": {"referenceWidth": 1540, "referenceHeight": 720, "slots": {"primary-speed":"port", "external-surface":"main", "primary-heel":"starboard-top", "primary-wind":"starboard-middle", "primary-depth":"starboard-bottom"}}
     }
   ],
     "display": {
@@ -404,6 +424,22 @@
         "presentations": ["heel-number", "heel-gauge", "depth-number", "depth-gauge", "stw-number", "stw-history"],
         "widgets": ["primary-speed", "primary-wind", "primary-depth", "primary-stw"],
         "template": "sailing-hud-full",
+        "layout": "hud",
+        "showControls": false,
+        "showMetadata": false
+      },
+      "synthetic-provenance-hud": {
+        "presentations": [],
+        "widgets": ["synthetic-sog", "synthetic-remote-wind", "synthetic-shore-wind"],
+        "template": "synthetic-provenance-hud",
+        "layout": "hud",
+        "showControls": false,
+        "showMetadata": false
+      },
+      "zo-hud-surface": {
+        "presentations": ["heel-number", "depth-number", "depth-gauge"],
+        "widgets": ["primary-speed", "primary-wind", "primary-depth", "external-surface"],
+        "template": "zo-hud-surface",
         "layout": "hud",
         "showControls": false,
         "showMetadata": false

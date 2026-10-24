@@ -19,6 +19,7 @@ The repository currently demonstrates:
 - versioned same-browser transport using `BroadcastChannel`, with snapshots, heartbeat and failure handling;
 - an optional local Signal K round trip while keeping widgets transport-independent;
 - declarative observations, sources, widgets, templates and display profiles in `config.json`;
+- synthetic boat-installation examples with semantic template matching, provenance and freshness states, without claiming connectivity;
 - automated Node contract tests and Chromium browser coverage.
 
 The full HUD displays SOG, STW, heel, apparent wind and depth. Depth is deliberately labelled with an unknown/uncalibrated reference rather than implying a keel, surface or transducer datum that has not been established. The committed virtual sources and example recordings are simulation/test inputs, not claims of live boat hardware support.
@@ -47,6 +48,16 @@ http://localhost:4173/?view=hud&template=sailing-hud-full
 The server binds to `127.0.0.1:4173` by default. The simulator owns virtual inputs, imports, recording and replay; the HUD subscribes to observations and contains no engineering controls.
 
 For a smaller composition, use `sailing-hud`. For the wind-enabled composition, use `sailing-hud-wind`. Browser fullscreen can be entered with F11 or the simulator's user-initiated **Fullscreen** action where supported.
+
+The synthetic installation fixture is available at `/?view=hud&sensorSession=heel-demo`. It is a presentation-only HUD: setup choices are not controls on that screen. `sensor-groups-demo.html?session=heel-demo&harness=true` is the clearly labelled engineering harness. Both are synthetic only and do not connect to phones, other boats, shore stations, or any remote service.
+
+The opt-in external-surface demonstration is also synthetic only: open `/?view=surface-fixture`, `/?view=hud&template=zo-hud-surface`, and the simulator in separate windows. It demonstrates frame lifecycle and composition beneath an overlay dial; it is not a charting or navigation system.
+
+For the local setup flow, open `/?view=setup&sensorSession=heel-only-demo`. It lists compatible, partial and incompatible community displays for that installation and opens the selected presentation without editing its sensor meanings. The committed fixture shows two differently equipped synthetic boats using the same heel display, plus one boat using degree, radian and qualitative heel displays.
+
+To define a real boat’s sensor meanings locally without a settings editor, copy `examples/local-boat-profile.example.json` outside the repository and validate it with `node scripts/validate-boat-profile.mjs /path/to/boat-profile.json`. It is a local-only, schema-validated authoring artifact; Telltales does not import it into a live adapter or transmit it anywhere.
+
+For a user-selected, tab-local private boat profile, open `/?view=private-setup` and choose a JSON file conforming to `examples/local-boat-profile.example.json`. Compatible community templates can then open a presentation-only HUD **in the same tab**; private data is never placed in the URL, browser storage or a transport channel. Reloading discards it. This has no connected sensors and does not provide live readings.
 
 More detail lives in the focused technical documents:
 
@@ -89,12 +100,19 @@ npm run validate:config
 npm test
 npx playwright install chromium
 npm run test:browser
+npm run test:signalk:e2e
 ```
 
 GitHub Actions runs configuration validation plus the Node and Chromium suites on pushes and pull requests. Browser tests exercise the two-window transport, replay, unavailable states and reference-size HUD behaviour. Routine repository changes are expected to start from a tracked issue, use an issue-linked branch, and arrive through a pull request for review rather than being committed directly to `main`; see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+`npm run test:signalk:e2e` additionally requires Docker and Chromium. It starts a pinned, disposable Signal K server on a free loopback port, enables server security through its supported API, creates temporary `readwrite` and `readonly` identities, logs in to obtain JWTs, configures the plugin’s separate ingress secret, and removes users and the Docker volume afterwards. It uses synthetic observations only. It is intentionally slower than the ordinary browser suite because it verifies the 30-second stale-reading expiry.
 
 ## Direction, not roadmap
 
 Near-term work is expected to stay anchored in useful sailing instrumentation: better evidence from real sources, additional interchangeable adapters and widgets where justified, and layouts that remain understandable and testable. Candidate capabilities in `config.json` are explicitly candidates; their presence is not a delivery commitment.
 
 The project is MIT licensed. See [LICENSE](LICENSE).
+
+## Make test commands
+
+From the repository root, after `npm ci`, run `make tests` for configuration and Node tests, or `make end-to-end-tests` (alias: `make tests-e2e`) for the full disposable Signal K + Chromium integration test. The latter requires Docker Compose and Playwright Chromium (`npx playwright install chromium`); it starts and tears down its own local Signal K containers. The npm command `npm run test:signalk:e2e` remains available. The full Signal K CI job runs on demand via **Actions → Signal K end-to-end → Run workflow**, and weekly on Sunday (04:00 UTC); routine PR and push checks run only the core and browser suites.
