@@ -1,3 +1,5 @@
+<!-- ENGINEERING-REVIEW.md -->
+
 # Engineering quality and AI succession baseline
 
 **Assessed:** 2026-10-24. **Tracking issue:** [#20](https://github.com/ilmc/telltales/issues/20). **Status:** review observations and recommendations; not a completed comprehensive audit or accepted remediation.
