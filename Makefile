@@ -68,7 +68,7 @@ iphone-heel-hud:
 	@node scripts/iphone-heel-local.mjs hud
 
 iphone-heel-test:
-	node --test test/iphone-heel-orientation.test.mjs test/iphone-heel-auth.test.mjs test/iphone-heel-producer.test.mjs test/local-server-certificate.test.mjs
+	node --test test/iphone-heel-orientation.test.mjs test/iphone-heel-auth.test.mjs test/iphone-heel-producer.test.mjs test/iphone-heel-local.test.mjs test/local-server-certificate.test.mjs
 
 iphone-heel-e2e:
 	npm run test:signalk:e2e

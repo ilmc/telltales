@@ -1,6 +1,7 @@
 // scripts/iphone-heel-local.mjs
 // Local-only launcher: ignored configuration is separate from macOS Keychain secrets.
 import { spawn, spawnSync } from 'node:child_process';
+import { randomInt } from 'node:crypto';
 import { chmod, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { networkInterfaces } from 'node:os';
 import net from 'node:net';
@@ -18,6 +19,21 @@ const accounts = Object.freeze({
   viewer: 'signalk-readonly-token',
   pairing: 'current-pairing-code',
 });
+const keychainSaveProgram = `
+import Foundation
+import Security
+let service = CommandLine.arguments[1]
+let account = CommandLine.arguments[2]
+let value = FileHandle.standardInput.readDataToEndOfFile
+let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account]
+let attributes: [String: Any] = [kSecValueData as String: value]
+let result = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+if result == errSecItemNotFound {
+  var added = query
+  added[kSecValueData as String] = value
+  if SecItemAdd(added as CFDictionary, nil) != errSecSuccess { exit(1) }
+} else if result != errSecSuccess { exit(1) }
+`;
 
 export function validateConfig(value) {
   if (!value || value.version !== 1 || typeof value.host !== 'string' || !value.host)
@@ -125,7 +141,16 @@ export function readSecret(name) {
 }
 export function saveSecret(name, value) {
   if (!accounts[name] || !value) throw Error(`missing ${name} credential`);
-  keychain(['add-generic-password', '-U', '-s', service, '-a', accounts[name], '-w', value]);
+  // security(1) requires the password as an argv value. Swift's Security
+  // bridge lets the provisioning helper deliver it over stdin instead.
+  const result = spawnSync('swift', ['-e', keychainSaveProgram, service, accounts[name]], {
+    encoding: 'utf8',
+    input: value,
+  });
+  if (result.error || result.status !== 0)
+    throw Error(
+      'macOS Keychain did not save the credential; existing Keychain items were not changed'
+    );
 }
 export function deleteSecret(name) {
   try {
@@ -139,6 +164,28 @@ function requiredSecret(name) {
     throw Error(`missing or revoked ${name} Keychain credential; run make iphone-heel-credentials`);
   }
 }
+export const createPairingCode = (random = randomInt) => `${random(1_000_000)}`.padStart(6, '0');
+export function hudLaunchDecision({ occupied, owned }) {
+  if (!occupied) return 'start';
+  return owned ? 'reuse' : 'refuse';
+}
+async function ownedProcess(role) {
+  const state = await readState(),
+    item = state[role];
+  if (!item) return false;
+  const command = spawnSync('ps', ['-p', `${item.pid}`, '-o', 'command='], {
+    encoding: 'utf8',
+  }).stdout;
+  return command.includes(
+    role === 'producer' ? 'experiments/iphone-heel/server.mjs' : 'scripts/server.mjs'
+  );
+}
+function openHud() {
+  spawn('open', ['http://127.0.0.1:4173/?view=hud&template=sailing-hud&mode=signalk'], {
+    detached: true,
+    stdio: 'ignore',
+  }).unref();
+}
 async function run(role) {
   const config = await readConfig(),
     env = { ...process.env, TELLTALES_SERVER_HOST: config.host };
@@ -147,12 +194,21 @@ async function run(role) {
     env.SIGNALK_TOKEN = requiredSecret('producer');
     env.SIGNALK_INGRESS_TOKEN = requiredSecret('ingress');
     env.SIGNALK_INGRESS = config.signalkIngress;
-    const pairing = `${Math.floor(Math.random() * 1_000_000)}`.padStart(6, '0');
+    const pairing = createPairingCode();
     saveSecret('pairing', pairing);
     env.IPHONE_HEEL_PAIRING_CODE = pairing;
     command = ['node', 'experiments/iphone-heel/server.mjs'];
   } else {
-    if (await portOpen(4173))
+    const decision = hudLaunchDecision({
+      occupied: await portOpen(4173),
+      owned: await ownedProcess('hud'),
+    });
+    if (decision === 'reuse') {
+      console.log('Reusing the existing experiment-owned authenticated HUD server.');
+      openHud();
+      return;
+    }
+    if (decision === 'refuse')
       throw Error(
         'port 4173 already has a web server; it is not experiment-owned, so it was left running. Stop it yourself or use its existing authenticated iPhone HUD launcher.'
       );
@@ -163,6 +219,11 @@ async function run(role) {
   const child = spawn(command[0], command.slice(1), { cwd: root, env, stdio: 'inherit' }),
     clear = () => role === 'producer' && deleteSecret('pairing');
   await register(role, child.pid);
+  if (role === 'hud') {
+    for (let tries = 0; tries < 20 && !(await portOpen(4173)); tries += 1)
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    if (await portOpen(4173)) openHud();
+  }
   for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP'])
     process.on(signal, () => {
       child.kill(signal);

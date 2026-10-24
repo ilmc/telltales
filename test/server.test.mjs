@@ -3,7 +3,8 @@ import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { createStaticServer } from '../scripts/server.mjs';
+import WebSocket from 'ws';
+import { attachSignalKStreamProxy, createStaticServer } from '../scripts/server.mjs';
 
 async function withServer(run) {
   const root = await mkdtemp(join(tmpdir(), 'telltales-server-'));
@@ -46,4 +47,23 @@ test('development server handles HEAD, missing files, and unsupported methods', 
     assert.equal((await fetch(`${baseURL}/missing`)).status, 404);
     assert.equal((await fetch(`${baseURL}/`, { method: 'POST' })).status, 405);
   });
+});
+
+test('local Signal K proxy rejects cross-origin WebSocket upgrades before contacting Signal K', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'telltales-proxy-'));
+  await writeFile(join(root, 'index.html'), '<!doctype html>');
+  const server = createStaticServer({ root });
+  attachSignalKStreamProxy(server, { stream: 'ws://127.0.0.1:1/stream', token: 'never-exposed' });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    await new Promise((resolve) => {
+      const socket = new WebSocket(`ws://127.0.0.1:${server.address().port}/local/signalk-stream`, {
+        origin: 'https://untrusted.example',
+      });
+      socket.once('error', resolve);
+      socket.once('close', resolve);
+    });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
 });

@@ -76,14 +76,23 @@ export function createStaticServer({ root = DEFAULT_ROOT } = {}) {
 // Keychain into this process environment.
 export function attachSignalKStreamProxy(server, { stream, token }) {
   if (!stream || !token) return;
-  const clients = new WebSocketServer({ noServer: true });
+  const clients = new WebSocketServer({ noServer: true, maxPayload: 2048 });
+  let activeClients = 0;
   server.on('upgrade', (request, socket, head) => {
     if (new URL(request.url, 'http://localhost').pathname !== '/local/signalk-stream') return;
+    if (request.headers.origin !== 'http://127.0.0.1:4173' || activeClients >= 2)
+      return socket.destroy();
     clients.handleUpgrade(request, socket, head, (client) => {
+      activeClients += 1;
       const upstreamUrl = new URL(stream);
       upstreamUrl.searchParams.set('token', token);
       const upstream = new WebSocket(upstreamUrl);
+      let closed = false;
       const close = () => {
+        if (!closed) {
+          closed = true;
+          activeClients = Math.max(0, activeClients - 1);
+        }
         if (client.readyState === client.OPEN) client.close();
         if (upstream.readyState === upstream.OPEN) upstream.close();
       };

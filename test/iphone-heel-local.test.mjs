@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import {
+  createPairingCode,
+  hudLaunchDecision,
   readConfig,
   setupDecision,
   validateConfig,
@@ -64,4 +66,21 @@ test('setup reuses a known host and asks only when discovery is ambiguous', () =
   });
   assert.equal(ambiguous.needsHost, true);
   assert.equal(ambiguous.webStatus, true, 'occupied web port is reported, not stopped');
+});
+
+test('pairing code uses an injected cryptographic integer source and retains six digits', () => {
+  assert.equal(
+    createPairingCode(() => 42),
+    '000042'
+  );
+  assert.equal(
+    createPairingCode(() => 999999),
+    '999999'
+  );
+});
+
+test('HUD lifecycle reuses only a recorded experiment server and refuses unknown owners', () => {
+  assert.equal(hudLaunchDecision({ occupied: false, owned: false }), 'start');
+  assert.equal(hudLaunchDecision({ occupied: true, owned: true }), 'reuse');
+  assert.equal(hudLaunchDecision({ occupied: true, owned: false }), 'refuse');
 });
