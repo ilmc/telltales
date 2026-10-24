@@ -110,3 +110,7 @@ GitHub Actions runs configuration validation plus the Node and Chromium suites o
 Near-term work is expected to stay anchored in useful sailing instrumentation: better evidence from real sources, additional interchangeable adapters and widgets where justified, and layouts that remain understandable and testable. Candidate capabilities in `config.json` are explicitly candidates; their presence is not a delivery commitment.
 
 The project is MIT licensed. See [LICENSE](LICENSE).
+
+## Make test commands
+
+From the repository root, after `npm ci`, run `make tests` for configuration and Node tests, or `make end-to-end-tests` (alias: `make tests-e2e`) for the full disposable Signal K + Chromium integration test. The latter requires Docker Compose and Playwright Chromium (`npx playwright install chromium`); it starts and tears down its own local Signal K containers. The npm command `npm run test:signalk:e2e` remains available.
