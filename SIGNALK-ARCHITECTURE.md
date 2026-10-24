@@ -8,6 +8,44 @@ Signal K already defines marine observations, source metadata, vessel context an
 
 A physical instrument may report several quantities, while several devices may report the same quantity. Keep device identity, source, observation, selected source, boat group and widget as separate concepts.
 
+## Target packaging (Issue #32)
+
+The supported runtime observation contract will be **Signal K**. Normal live operation requires access to a Signal K server, but not a cloud service, internet connection, Telltales-owned server, or both Telltales components. An on-boat instance supports offline navigation displays. The existing browser-only BroadcastChannel demo and optional Signal K mode remain **legacy development paths during migration**; neither is evidence that the target design has been implemented.
+
+These are **two independent installable components**, plus a shared specification/library, not necessarily two server plugins:
+
+| Component | Default packaging candidate | Function |
+| --- | --- | --- |
+| Producer/integration assistant | Optional Signal K server plugin **or** standalone adapter where required | Discover supported instrument integration, normalise/calibrate and publish standard observations; reuse established plugins and drivers |
+| Consumer/HUD | Signal K webapp | Read observation streams, source/freshness metadata and user-selected groups; compose sailing widgets and external surfaces |
+| Shared sensor-group contract | Versioned schema, validator, examples and import/export tooling | Describe selections independently of the producer and HUD; translate to supported Signal K configuration where possible |
+
+**Install only what is needed.** An existing Signal K GNSS or wind adapter needs neither Telltales producer nor its specific plugin. A different Signal K display can consume a Telltales-origin heel reading. A Telltales HUD can consume ordinary Signal K observations without a Telltales producer.
+
+### Sensor groups: common contract, not a second source-priority engine
+
+A sensor group is a **user-curated named selection** of observations and preferred sources for a vessel/session or task. It is not an independent vessel identity, device driver, transport, stream or duplicate Signal K arbitration layer. The contract distinguishes:
+
+- Signal K path, expected units/reference, vessel context and source identity;
+- user-facing label, optional preferred source, fallback policy where supported, provenance and age requirements;
+- template/widget presentation bindings (consumer-specific, not sensor calibration);
+- human-authored configuration versus discovered/live status.
+
+The producer-side helper may use a group definition to suggest/connect the required observations; the HUD may use the **same definition** to choose widgets or preferences. **Neither component owns the group's canonical storage simply by being installed.** Begin with a portable, validated file owned by the downstream deployment; later assess a Signal K-native settings API or plugin only if justified. Avoid hard-coding customer boats or inventing server APIs.
+
+Use **discover → describe → diff/review → apply** for IaC-style orchestration. Applying changes must be explicit, idempotent, and supported by stable Signal K interfaces; unsupported operations remain documented manual steps. Secret references belong in local protected storage, never in shared example files or public URLs.
+
+### Incremental delivery and acceptance
+
+1. Specify and validate a **fictional** sensor-group file with unit/source/freshness checks, then test it with two independent clients; exclude customer configuration and secrets.
+2. Audit existing Telltales simulator, transport, config and plugin boundaries; preserve working tests while drawing a migration map to standard Signal K deltas and source identities.
+3. Demonstrate a HUD-only installation consuming data from existing Signal K sources; no producer installation required.
+4. Demonstrate a producer-only integration feeding a **non-Telltales** Signal K consumer; reuse existing adapters before authoring a new one.
+5. Migrate or clearly confine BroadcastChannel simulation/replay to tests; verify deterministic browser tests and disposable real Signal K E2E, disconnected/stale states, stop/restart and security.
+6. Package/version each component independently without prematurely splitting repositories. Real hardware/category examples must distinguish simulated tests from physical acceptance.
+
+This is the **agreed architecture direction, not delivered behaviour**. Scope the physical iPhone test and bug fixes in Draft PR #30 separately; do not fold Issue #32's migration into it.
+
 ## Independent producers and consumers
 
 **Producers** read physical instruments or browser motion, calibrate axes and reference frames, and publish standard Signal K observations. Where an existing adapter, SeaTalk bridge, NMEA connection or SensESP implementation works, prefer it. A new producer should work with other Signal K consumers without requiring the Telltales HUD.
