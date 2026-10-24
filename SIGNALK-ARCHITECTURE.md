@@ -15,7 +15,7 @@ These pieces should be installable/useful independently and communicate through 
 
 ### Ownership boundary: toolkit versus downstream deployment
 
-**Telltales is the reusable upstream toolkit.** Its public repository owns generic adapters where justified, Signal K integration helpers, declarative schemas/validators, sample *fictional* groups, widgets, layouts, documentation and tests. It does **not** own, configure, or store the final instrument inventory, source credentials, sensor bindings or customised HUD of a particular customer boat.
+**Telltales is the reusable upstream toolkit.** Its public repository owns generic adapters where justified, Signal K integration helpers, declarative schemas/validators, sample *fictional* groups, widgets, layouts, documentation and tests. It should supply **working, hardware-category examples** for the mix a downstream Zo installation may need: SeaTalk/ST60+ depth and speed-through-water, USB GPS, inclinometer/heel, NASA wind, and OpenCPN as an external chart surface where technically possible. These examples must be portable, sanitised and independently verifiable, without asserting a specific physical connection or installation. It does **not** own, configure, or store the final instrument inventory, source credentials, sensor bindings or customised HUD of a particular customer boat.
 
 **Downstream consumers own their installations.** Each consumer uses the public tooling to discover and configure their real Signal K sources, build sensor groups, select displays and customise layouts in its own project/environment. Real boat configuration, sensor availability, identifying information, and test evidence stay downstream unless an explicitly authorised, sanitised and generally reusable contribution is upstreamed. A downstream consumer may be called Boat Optimist and may use a group called **Zo**; that does not make Zo a Telltales-owned example, fixture, installation or configuration. Avoid importing downstream materials into public Telltales without consent and scope review.
 
@@ -28,7 +28,7 @@ A numeric heel widget may display **12° Port** or **12° Starboard** (unsigned 
 
 A single physical IMU may produce several measurements, while several sensors may independently produce the same observation. Thus **hardware device**, **data source**, **standard observation**, **source preference**, **boat/group** and **widget** are distinct concepts. Normalisation makes readings comparable in meaning, not equally accurate.
 
-## Generic mixed-source example (fictional)
+## Generic mixed-source examples (fictional; inspired by downstream needs)
 
 **This is a fictional, non-customer example**, not a boat profile, installation record or committed implementation. A reusable mixed-source fixture might contain:
 
