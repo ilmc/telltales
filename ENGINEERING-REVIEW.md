@@ -30,6 +30,15 @@ Retain this stack unless evidence from a concrete feature warrants a change; avo
 ## Format-policy hypothesis
 GitHub supports long lines but its line-oriented diffs and inline comments become less precise. Language models can parse dense code, but token/context usage, exact line references and edit targeting suffer; do not claim line-length directly determines model correctness. Prefer consistent readable formatting over an arbitrary rigid character cap. Consider Prettier print width near 100 and ESLint for genuine defects; verify actual formatter behaviour before imposing CI requirements. Separate purely mechanical formatting from functional changes to preserve review quality. Use `.git-blame-ignore-revs` only if a dedicated reformat commit genuinely warrants it.
 
+## Source readability, structure and commentary (proposed; tracked in #23)
+- Prefer cohesive modules with explicit responsibility and names that communicate behaviour; splitting a module must follow a semantic boundary, not a raw line-count quota.
+- Use consistent automatic formatting for human and AI review, avoiding compressed multi-statement lines. Formatter print width is a wrapping preference, not an absolute guarantee that every string or token fits.
+- Module-header comments should be brief and selective: state purpose, unusual dependencies, external contract or security/safety assumptions when those would not be clear from the filename and exports. Avoid repetitive boilerplate.
+- Comments should explain **why** a decision exists, trust/failure boundaries, invariants, units, frames, temporal semantics and subtle asynchronous lifecycle cases. Do not narrate obvious syntax or keep stale explanations.
+- Cross-module invariants and their tests belong in maintained public contract/architecture documentation; implementation-adjacent comments should identify the tricky local details.
+- Linting detects errors and hazardous patterns; formatting standardizes layout. Distinct mechanical reformat commits protect reviewability and blame history.
+- These guidelines are a review proposal until separately accepted and enforced; preserve the distinction between policy, implementation and verified adoption.
+
 ## Succession test protocol
 1. Select an unfamiliar LLM and provide only public repository access plus one self-contained issue.
 2. Ask it to explain architecture, invariants, source of truth and unknowns; compare against executable contracts.
