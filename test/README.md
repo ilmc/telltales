@@ -1,3 +1,4 @@
+<!-- telltales/test/README.md -->
 # Tests — why the suites are separate
 
 Telltales needs evidence at the boundary where a defect could harm interpretation, without making every small change pay for a full Docker-based integration environment. A passing pure-function test cannot prove browser wiring; a passing browser mock cannot prove real Signal K authentication or streaming.
