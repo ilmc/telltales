@@ -64,6 +64,7 @@ More detail lives in the focused technical documents:
 - [Widget catalogue and contracts](WIDGETS.md)
 - [Configuration and templates](CONFIGURATION.md)
 - [Signal K development route](SIGNALK.md)
+- [Producer/consumer boundaries and hypothetical Zo configuration](SIGNALK-ARCHITECTURE.md)
 
 ## Why Telltales exists
 
