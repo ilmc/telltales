@@ -19,12 +19,12 @@ export async function createPairing({
   file,
   code,
   now = () => Date.now(),
-  codeLifetimeMs = 15 * 60_000,
+  codeLifetimeMs = 5 * 60_000,
   credentialLifetimeMs = 12 * 60 * 60_000,
   reset = true,
 }) {
-  if (!code || code.length < 16)
-    throw Error('IPHONE_HEEL_PAIRING_CODE must be a random 16+ character temporary secret');
+  if (!/^\d{6}$/.test(code || ''))
+    throw Error('IPHONE_HEEL_PAIRING_CODE must be a random six-digit numeric code');
   await mkdir(dirname(file), { recursive: true, mode: 0o700 });
   let devices = {};
   const load = async () => {
@@ -39,8 +39,9 @@ export async function createPairing({
     await writeFile(temp, JSON.stringify({ version: 1, devices }), { mode: 0o600 });
     await rename(temp, file);
   };
-  // A launcher restart deliberately revokes every browser cookie. The pairing code
-  // is an in-person, short-lived ceremony rather than a reusable LAN password.
+  // A launcher restart deliberately revokes every browser cookie. The short code
+  // is only an in-person, short-lived ceremony; the issued device credential has
+  // independent high entropy.
   if (reset) {
     devices = {};
     await save();

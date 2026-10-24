@@ -11,12 +11,12 @@ test('iPhone pairing stores an expiring credential without accepting a wrong cod
   let now = 1000;
   const pairing = await createPairing({
     file,
-    code: 'a-random-temporary-code',
+    code: '004219',
     now: () => now,
     credentialLifetimeMs: 10,
   });
   assert.equal(await pairing.pair('wrong-code'), null);
-  const credential = await pairing.pair('a-random-temporary-code');
+  const credential = await pairing.pair('004219');
   assert.match(credential, /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
   assert.ok(await pairing.authenticate(credential));
   assert.equal(await pairing.authenticate(`${credential}broken`), null);
@@ -25,9 +25,10 @@ test('iPhone pairing stores an expiring credential without accepting a wrong cod
   assert.equal(parseCookies('one=1; two=2').two, '2');
 });
 
-test('iPhone pairing requires a strong temporary secret', async () => {
-  await assert.rejects(
-    createPairing({ file: join(tmpdir(), 'unreachable-pairing.json'), code: 'too-short' }),
-    /random 16/
-  );
+test('iPhone pairing requires an exact six-digit numeric temporary code', async () => {
+  for (const code of ['12345', '1234567', 'abcdef', '12345x', 'a-random-temporary-code'])
+    await assert.rejects(
+      createPairing({ file: join(tmpdir(), 'unreachable-pairing.json'), code }),
+      /six-digit numeric/
+    );
 });

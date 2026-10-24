@@ -14,7 +14,7 @@ help:
 	  '                           Prepare/reuse a trusted local Telltales server identity' \
 	  'make iphone-heel-setup TELLTALES_SERVER_HOST=host-or-ip' \
 	  '                           Prepare/reuse TLS identity for the iPhone experiment' \
-	  'make iphone-heel           Run paired iPhone HTTPS/WSS producer (tokens required)' \
+	  'make iphone-heel           Run paired iPhone producer (tokens required; private 6-digit code)' \
 	  'make iphone-heel-hud       Run the separate local Telltales HUD server' \
 	  'make iphone-heel-test      Focused iPhone heel unit/lifecycle tests' \
 	  'make iphone-heel-e2e       Disposable Docker Signal K E2E (not a phone test)'
@@ -29,7 +29,7 @@ end-to-end-tests tests-e2e:
 	npm run test:signalk:e2e
 
 # The reusable server identity is checked rather than overwritten. Each producer
-# launch creates a separate ignored, mode-600 pairing secret; Signal K tokens
+# launch creates a separate ignored, mode-600 six-digit pairing code; Signal K tokens
 # remain caller-supplied environment variables.
 local-server-cert:
 	@test -n "$(TELLTALES_SERVER_HOST)" || { echo 'set TELLTALES_SERVER_HOST to the Mac LAN hostname or IP' >&2; exit 2; }
@@ -37,12 +37,12 @@ local-server-cert:
 
 iphone-heel-setup: local-server-cert
 	@sh scripts/check-signalk-iphone-heel-setup.sh
-	@printf '%s\n' 'TLS identity is ready. iphone-heel creates a new private pairing secret for each launch.'
+	@printf '%s\n' 'TLS identity is ready. iphone-heel creates a new private six-digit pairing code for each launch.'
 
 iphone-heel:
 	@test -r "$(TELLTALES_SERVER_CERT_DIR)/telltales-server.key" || { echo 'run make iphone-heel-setup TELLTALES_SERVER_HOST=… first' >&2; exit 2; }
 	@mkdir -p .local
-	@umask 077; printf 'IPHONE_HEEL_PAIRING_CODE=%s\n' "$$(openssl rand -hex 32)" > "$(IPHONE_HEEL_PAIRING_FILE)"; \
+	@umask 077; printf 'IPHONE_HEEL_PAIRING_CODE=%s\n' "$$(node -e "process.stdout.write(require('node:crypto').randomInt(1000000).toString().padStart(6, '0'))")" > "$(IPHONE_HEEL_PAIRING_FILE)"; \
 	  trap 'rm -f "$(IPHONE_HEEL_PAIRING_FILE)"' EXIT HUP INT TERM; \
 	  set -a; . "$(IPHONE_HEEL_PAIRING_FILE)"; set +a; \
 	  : "$${SIGNALK_TOKEN:?set a readwrite Signal K token in this terminal}"; \

@@ -12,6 +12,7 @@ import { createPairing } from '../experiments/iphone-heel/auth.mjs';
 import {
   createIphoneHeelProducer,
   createIphoneHeelPublicationQueue,
+  createPairingAttemptLimiter,
 } from '../experiments/iphone-heel/server.mjs';
 
 const exec = promisify(execFile);
@@ -60,7 +61,7 @@ test('paired HTTPS/WSS producer retains lifecycle, source time, and ordered inva
   ]);
   const pairing = await createPairing({
     file: join(directory, 'devices.json'),
-    code: 'strong-temporary-pairing-code',
+    code: '764201',
   });
   const published = [];
   const producer = createIphoneHeelProducer({
@@ -81,9 +82,20 @@ test('paired HTTPS/WSS producer retains lifecycle, source time, and ordered inva
     const paired = await httpsRequest(`${base}/auth/pair`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: '{"code":"strong-temporary-pairing-code"}',
+      body: '{"code":"764201"}',
     });
     assert.equal(paired.status, 201);
+    assert.equal(
+      (
+        await httpsRequest(`${base}/auth/pair`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: '{"code":"764201"}',
+        })
+      ).status,
+      409,
+      'one launch accepts only one phone pairing'
+    );
     const cookie = paired.headers['set-cookie'][0].split(';', 1)[0];
     const ws = await openSocket(base.replace('https:', 'wss:') + '/stream', { cookie });
     ws.send(JSON.stringify({ type: 'hello', role: 'phone' }));
@@ -135,30 +147,21 @@ test('paired HTTPS/WSS producer retains lifecycle, source time, and ordered inva
     await sleep(150);
     assert.match(published.at(-1).reason, /stale/);
     reconnected.close();
-    for (let attempt = 0; attempt < 5; attempt++)
-      assert.equal(
-        (
-          await httpsRequest(`${base}/auth/pair`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: '{"code":"wrong"}',
-          })
-        ).status,
-        401
-      );
-    assert.equal(
-      (
-        await httpsRequest(`${base}/auth/pair`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: '{"code":"wrong"}',
-        })
-      ).status,
-      429
-    );
   } finally {
     await producer.close();
   }
+});
+
+test('pairing limits failures across source addresses for one short-lived session', () => {
+  let now = 1000;
+  const limiter = createPairingAttemptLimiter({ clock: () => now, limit: 2, windowMs: 100 });
+  assert.ok(limiter.allows('192.0.2.1'));
+  limiter.failed('192.0.2.1');
+  assert.ok(limiter.allows('192.0.2.2'));
+  limiter.failed('192.0.2.2');
+  assert.equal(limiter.allows('192.0.2.3'), false, 'changing addresses cannot extend the session');
+  now += 101;
+  assert.ok(limiter.allows('192.0.2.3'), 'the short pairing window has a bounded reset');
 });
 
 test('a recovered reading supersedes a failed invalidation, while unresolved invalidation retries', async () => {

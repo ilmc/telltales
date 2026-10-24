@@ -27,6 +27,34 @@ const validPhoneReading = (message, now) => {
   );
 };
 
+export function createPairingAttemptLimiter({
+  clock = Date.now,
+  limit = 5,
+  windowMs = 5 * 60_000,
+}) {
+  let session = { count: 0, startedAt: clock() };
+  const addresses = new Map();
+  const current = (record) => {
+    if (clock() - record.startedAt > windowMs) return { count: 0, startedAt: clock() };
+    return record;
+  };
+  return Object.freeze({
+    allows(address) {
+      session = current(session);
+      const record = current(addresses.get(address) || { count: 0, startedAt: clock() });
+      addresses.set(address, record);
+      return session.count < limit && record.count < limit;
+    },
+    failed(address) {
+      session = current(session);
+      const record = current(addresses.get(address) || { count: 0, startedAt: clock() });
+      session.count += 1;
+      record.count += 1;
+      addresses.set(address, record);
+    },
+  });
+}
+
 export function createIphoneHeelPublicationQueue({
   publishIngress,
   clock = Date.now,
@@ -102,20 +130,23 @@ export function createIphoneHeelProducer({
   heartbeatMs = 1000,
   staleMs = 3000,
   pairingAttempts = 5,
-  pairingWindowMs = 15 * 60_000,
+  pairingWindowMs = 5 * 60_000,
 }) {
   let owner = null;
   let lastPhoneReadingAt = 0;
-  const attempts = new Map();
+  let pairingComplete = false;
+  const attempts = createPairingAttemptLimiter({
+    clock,
+    limit: pairingAttempts,
+    windowMs: pairingWindowMs,
+  });
   const publication = createIphoneHeelPublicationQueue({ publishIngress, clock, heartbeatMs });
   const server = createServer(tls, async (req, res) => {
     const url = new URL(req.url, 'https://local');
     if (url.pathname === '/auth/pair' && req.method === 'POST') {
       const address = req.socket.remoteAddress || 'unknown';
-      const record = attempts.get(address) || { count: 0, startedAt: clock() };
-      if (clock() - record.startedAt > pairingWindowMs)
-        Object.assign(record, { count: 0, startedAt: clock() });
-      if (record.count >= pairingAttempts) return res.writeHead(429).end();
+      if (pairingComplete) return res.writeHead(409).end();
+      if (!attempts.allows(address)) return res.writeHead(429).end();
       let credential;
       try {
         let body = '';
@@ -123,11 +154,10 @@ export function createIphoneHeelProducer({
         credential = await pairing.pair(JSON.parse(body).code, clock());
       } catch {}
       if (!credential) {
-        record.count += 1;
-        attempts.set(address, record);
+        attempts.failed(address);
         return res.writeHead(401).end();
       }
-      attempts.delete(address);
+      pairingComplete = true;
       return res
         .writeHead(201, {
           'set-cookie': `iphone_heel_device=${credential}; Path=/; HttpOnly; Secure; SameSite=Strict`,
@@ -146,7 +176,9 @@ export function createIphoneHeelProducer({
       })
       .end(await readFile(resolve(file.startsWith('src/') ? root : directory, file)));
   });
-  const wss = new WebSocketServer({ noServer: true });
+  // Phone messages are a tiny fixed schema. A small frame limit prevents this
+  // LAN-only experiment from treating WebSocket framing as unlimited input.
+  const wss = new WebSocketServer({ noServer: true, maxPayload: 1024 });
   server.on('upgrade', async (req, socket, head) => {
     if (
       new URL(req.url, 'https://local').pathname !== '/stream' ||
@@ -240,7 +272,7 @@ async function main() {
   });
   const port = Number(process.env.IPHONE_HEEL_PORT || 8443);
   producer.server.listen(port, process.env.IPHONE_HEEL_HOST || '0.0.0.0', () =>
-    console.log('Phone: https://<Mac LAN IP>:8443/ · pair within 15 minutes')
+    console.log('Phone: https://<Mac LAN IP>:8443/ · enter the six-digit code within 5 minutes')
   );
 }
 

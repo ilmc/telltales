@@ -31,7 +31,14 @@
   positive starboard.
 </p>
 <p id="pairing">
-  <input id="code" placeholder="Pairing code" /><button id="pair">Pair iPhone</button>
+  <input
+    id="code"
+    inputmode="numeric"
+    autocomplete="one-time-code"
+    maxlength="6"
+    pattern="[0-9]{6}"
+    placeholder="Six-digit pairing code"
+  /><button id="pair">Pair iPhone</button>
 </p>
 <div class="reading"><span id="value">—</span><small>°</small></div>
 <p id="side">Awaiting secure pairing</p>

@@ -121,6 +121,8 @@ and has a separate physical acceptance gate. From a fresh checkout, use
 `iphone-heel-hud`, `iphone-heel-test`, and `iphone-heel-e2e`; the complete secure setup, physical
 procedure, cleanup, troubleshooting, and evidence form are in
 [the iPhone heel experiment runbook](experiments/iphone-heel/README.md).
+Each producer launch creates one transient six-digit phone-entry code; it is not a
+Signal K token or the long random device credential issued after pairing.
 
 ## Direction, not roadmap
 

@@ -42,7 +42,7 @@ Do not put tokens in a repository file, shell history, screenshot, chat, or publ
 
    `make local-server-cert` is also available for another explicitly authorised Telltales local HTTPS service. It stores the ignored server private key and certificate as `.local/certs/telltales-server.{key,crt,cer}` with restrictive permissions. It reuses the certificate only when it is valid for at least seven days and its SAN matches the selected host; it otherwise refuses replacement unless the operator deliberately runs `TELLTALES_SERVER_CERT_ROTATE=1 make local-server-cert TELLTALES_SERVER_HOST=…`. Rotation, expiry, or a changed host/IP requires client trust action again. The certificate is valid for 90 days, not permanently trusted or portable. The private key stays on this server and is never a phone credential.
 
-   `make iphone-heel` generates a new random pairing secret for that launch, writes it briefly to ignored `.local/iphone-heel-pairing.env` for private phone entry, and removes it on shutdown. TLS trust never authorizes pairing, motion permission, or a sensor experiment. Legacy `.local/iphone-heel-cert` material is not reused: inspect and remove it deliberately after confirming it is not needed, then use the generic server identity.
+   `make iphone-heel` generates a new cryptographically random **six-digit numeric pairing code** for that launch, writes it briefly to ignored, mode-600 `.local/iphone-heel-pairing.env` for private phone entry, and removes it on shutdown. It does not print the code: read that local file privately only when entering it on the phone, and never copy it into logs, screenshots, shell history, chat, URLs, or evidence. The code is deliberately short for in-person entry, so it expires after five minutes and has a strict five-failure limit both per source address and across the whole launch pairing session. One launch accepts one phone pairing; restart rather than repeatedly guessing or attempting a second phone. The resulting browser device credential remains a separate 256-bit random value, is `HttpOnly`/`Secure`/`SameSite=Strict`, expires after 12 hours, and is revoked on producer restart. TLS trust never authorizes pairing, motion permission, or a sensor experiment. Legacy `.local/iphone-heel-cert` material is not reused: inspect and remove it deliberately after confirming it is not needed, then use the generic server identity.
 
 4. Bootstrap trust **before** opening the HTTPS producer; do not download the first certificate through an untrusted HTTPS warning. On the Mac, display the public certificate's SHA-256 fingerprint:
 
@@ -64,7 +64,7 @@ Use three terminals/screens so the phone, producer, and HUD remain independent.
    make iphone-heel
    ```
 
-   This sources only the private pairing secret from `.local/`; it never prints that value or the Signal K tokens. The producer runs the temporary phone service on port 8443. Restarting it revokes browser credentials. Pairing expires after 15 minutes, limits failed attempts per source address, and browser credentials expire after 12 hours.
+   This sources only the private six-digit pairing code from `.local/`; it never prints that value or the Signal K tokens. The producer runs the temporary phone service on port 8443. Privately read the code from the restricted file and enter it into the iPhone page—do not pass it as a command argument, environment variable, URL, or copied terminal transcript. Restarting revokes browser credentials and creates a new code. Pairing expires after five minutes; five failed guesses from any combination of addresses close that launch's pairing ceremony, and only one phone can pair. The long random browser credential expires after 12 hours.
 
 2. Complete certificate trust. In Safari open `https://TELLTALES_SERVER_HOST:8443/`, privately read and enter the pairing value, choose **Enable Motion** after the visible gesture, hold the supported mount level, and press **Zero here** only after fresh sensor input appears. Record the actual source method: `devicemotion gravity` when supplied, otherwise the beta/gamma orientation fallback. Neither is a calibration claim. Subsequent authorised Telltales experiments on the same unchanged host may reuse the trusted TLS identity; each still needs its own pairing/session/permission flow.
 
@@ -101,14 +101,14 @@ Perform this with a human observing the phone and a **different** HUD screen. Fi
 
 ## Troubleshooting and cleanup
 
-| Symptom                               | Check or safe response                                                                                                                               |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| iPhone cannot open page               | Confirm trusted-LAN address/port, Mac firewall, and terminal A. Do not expose Signal K or disable security.                                          |
-| Safari says connection is not private | Reinstall/trust the certificate and confirm it has a SAN for the exact selected LAN host/IP; deliberately rotate it after expiry or identity change. |
-| Pairing fails                         | Check the 15-minute window and privately type the generated secret. Restart producer to reset/revoke rather than guessing repeatedly.                |
-| Enable Motion fails                   | Permission needs the visible gesture and trusted HTTPS. Record denied/absent APIs; do not fake input.                                                |
-| HUD has no heel                       | Check local Signal K/plugin status, token roles, ingress token, and Signal K path. Keep tokens out of diagnostics.                                   |
-| Heel becomes unavailable              | Check foreground state, Wi-Fi, fresh events, supported mount/range, and ingress. This fail-closed result must not be overridden.                     |
+| Symptom                               | Check or safe response                                                                                                                                                            |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| iPhone cannot open page               | Confirm trusted-LAN address/port, Mac firewall, and terminal A. Do not expose Signal K or disable security.                                                                       |
+| Safari says connection is not private | Reinstall/trust the certificate and confirm it has a SAN for the exact selected LAN host/IP; deliberately rotate it after expiry or identity change.                              |
+| Pairing fails                         | Check the five-minute window and privately type the six-digit code. Five failed guesses across the launch close pairing; restart to reset/revoke rather than guessing repeatedly. |
+| Enable Motion fails                   | Permission needs the visible gesture and trusted HTTPS. Record denied/absent APIs; do not fake input.                                                                             |
+| HUD has no heel                       | Check local Signal K/plugin status, token roles, ingress token, and Signal K path. Keep tokens out of diagnostics.                                                                |
+| Heel becomes unavailable              | Check foreground state, Wi-Fi, fresh events, supported mount/range, and ingress. This fail-closed result must not be overridden.                                                  |
 
 After stopping all processes, normal cleanup needs no certificate deletion: `make iphone-heel` removes its per-launch pairing file on exit, and independently managed Signal K tokens should be revoked if created solely for the run. Preserve `.local/certs` for later authorised experiments on the same unchanged host.
 
