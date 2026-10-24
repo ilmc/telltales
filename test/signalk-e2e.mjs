@@ -68,7 +68,7 @@ try {
   await hud.locator('.hud-heel .status').filter({hasText: 'LIVE · HEEL'}).waitFor({timeout: 10000});
   await hud.locator('.hud-heel .status').filter({hasText: 'UNAVAILABLE · Stale or future observation'}).waitFor({timeout: 36_000});
 
-  await simulator.evaluate(async ({url, token}) => await new Promise((resolve, reject) => { const socket = new WebSocket(`${url}/signalk/v1/stream?subscribe=none&token=${encodeURIComponent(token)}`); socket.onopen = () => { socket.send(JSON.stringify({context: 'vessels.urn:mrn:signalk:uuid:foreign', updates: [{timestamp: new Date().toISOString(), values: [{path: 'navigation.attitude.roll', value: 0.7}]}]})); setTimeout(() => { socket.close(); resolve(); }, 300); }; socket.onerror = () => reject(Error('foreign-vessel websocket failed')); }), {url: base.replace('http', 'ws'), token: readwriteToken});
+  await hud.evaluate(async ({url, token}) => await new Promise((resolve, reject) => { const socket = new WebSocket(`${url}/signalk/v1/stream?subscribe=none&token=${encodeURIComponent(token)}`); socket.onopen = () => { socket.send(JSON.stringify({context: 'vessels.urn:mrn:signalk:uuid:foreign', updates: [{timestamp: new Date().toISOString(), values: [{path: 'navigation.attitude.roll', value: 0.7}]}]})); setTimeout(() => { socket.close(); resolve(); }, 300); }; socket.onerror = () => reject(Error('foreign-vessel websocket failed')); }), {url: base.replace('http', 'ws'), token: readwriteToken});
   await sleep(500); assert.match(await hud.locator('.hud-heel .status').textContent(), /UNAVAILABLE/, 'foreign vessel changed self HUD');
   console.log('Signal K E2E passed: readwrite 202, negative authorization/token cases rejected, signed heel HUD, invalidation, stale data, and foreign-vessel isolation.');
 } finally {
