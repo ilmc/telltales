@@ -1,4 +1,4 @@
-<!-- telltales/CODE-STYLE.md -->
+<!-- CODE-STYLE.md -->
 # Source readability policy
 
 **Rationale.** Telltales is meant to be maintained by different LLMs and humans without relying on the original conversation. Code should expose its own structure, while durable commentary preserves the reasoning that a future maintainer cannot deduce from syntax alone.
