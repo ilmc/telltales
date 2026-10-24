@@ -73,6 +73,10 @@ Telltales explores a deliberately small set of seams between those concerns. A d
 
 The current sailing HUD is the proving ground for those ideas. Reuse beyond that is a direction to be earned through useful examples and evidence, not a promise of a generic framework or a fixed roadmap.
 
+## Engineering quality baseline
+
+The [engineering quality and AI-succession review](ENGINEERING-REVIEW.md) records inspected strengths, unresolved findings, follow-up evidence and the cold-start model handover protocol. Before conducting another broad review, check the baseline and [Issue #20](https://github.com/ilmc/telltales/issues/20), and update the status of known findings rather than repeating the same analysis.
+
 ## Development model
 
 Telltales is intentionally **AI-led, with human direction and oversight**.
