@@ -8,6 +8,8 @@ Read the current governing issue or agreed change, plus the relevant parts of [R
 
 Assess the request before coding. Challenge a proposed implementation when repository evidence shows a smaller or safer route, but do not silently weaken accepted requirements.
 
+Follow [CODE-STYLE.md](CODE-STYLE.md) for the repository's source-readability policy.
+
 ## Default workflow
 
 For an ordinary substantive change:
