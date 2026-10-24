@@ -14,13 +14,19 @@ export function mountPrivateProfileSetup({community,root=document.body}){
   const list=document.createElement('section');list.className='template-list';
   main.append(title,note,label,message,list);root.append(main);
   let active=null;
+  let selectionGeneration=0;
+  let launched=false;
   input.addEventListener('change',async()=>{
+    const generation=++selectionGeneration;
+    launched=false;
     list.replaceChildren();active=null;message.textContent='';
     const file=input.files?.[0];
     if(!file)return;
     if(file.size>MAX_PROFILE_BYTES){message.textContent='Profile exceeds 64 KiB limit.';return}
     try{
-      const profile=parseLocalProfile(await file.text());
+      const contents=await file.text();
+      if(generation!==selectionGeneration||launched)return;
+      const profile=parseLocalProfile(contents);
       active=composeLocalProfile(profile,community);
       message.textContent='Local profile validated. No readings are connected.';
       for(const match of listTemplateCompatibility(active,profile.sensorGroup.id)){
@@ -32,14 +38,19 @@ export function mountPrivateProfileSetup({community,root=document.body}){
         if(missing.length)status.textContent+=' · missing: '+missing.join(', ');
         const button=document.createElement('button');button.textContent='Use this display';button.disabled=match.status==='incompatible';
         button.addEventListener('click',()=>{
-          if(!active)return;
+          if(!active||generation!==selectionGeneration||launched)return;
+          launched=true;
+          ++selectionGeneration;
           // Preserve profile only in this JS closure; do not navigate or serialize
           // any private data in the URL, storage, or BroadcastChannel.
           mountSensorGroupHud({catalog:active,sessionId,templateId:template.id,profileOnly:true,root});
         });
         card.append(heading,status,button);list.append(card);
       }
-    }catch(error){active=null;message.textContent='Invalid local boat profile. Check its format, sensors, references and calibration.'}
+    }catch(error){
+      if(generation!==selectionGeneration||launched)return;
+      active=null;message.textContent='Invalid local boat profile. Check its format, sensors, references and calibration.';
+    }
   });
   return{input,main};
 }
