@@ -6,5 +6,6 @@
   "keywords": [
     "signalk-node-server-plugin",
     "signalk-server-plugin"
-  ]
+  ],
+  "signalk-plugin-enabled-by-default": true
 }

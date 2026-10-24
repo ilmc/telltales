@@ -85,6 +85,23 @@ async function login(base, username, password) {
   assert.equal(response.status, 200, `login for ${username}: ${response.text}`);
   return JSON.parse(response.text).token;
 }
+async function waitForDiscoveredPlugin(base, token) {
+  let last;
+  for (let i = 0; i < 60; i++) {
+    const response = await request(`${base}/skServer/plugins`, { token, method: 'GET' });
+    if (response.status === 200) {
+      const plugin = JSON.parse(response.text).find(
+        (candidate) => candidate.id === 'telltales-observations'
+      );
+      if (plugin) return plugin;
+      last = 'Telltales observations was absent from the plugin list';
+    } else {
+      last = `HTTP ${response.status}: ${response.text}`;
+    }
+    await sleep(500);
+  }
+  throw Error(`Telltales plugin was not discovered by the running server: ${last}`);
+}
 function observation(value, extra = {}) {
   return {
     id: 'vessel.heel',
@@ -131,6 +148,12 @@ try {
   }
   readwriteToken = await login(base, 'e2e-readwrite', 'e2e-readwrite-password');
   const readonlyToken = await login(base, 'e2e-readonly', 'e2e-readonly-password');
+  const discoveredPlugin = await waitForDiscoveredPlugin(base, adminToken);
+  assert.equal(
+    discoveredPlugin.enabled,
+    true,
+    `Telltales plugin should default enabled: ${JSON.stringify(discoveredPlugin)}`
+  );
   const ingressToken = `e2e-ingress-${process.pid}-${Date.now()}`;
   response = await request(`${base}/plugins/telltales-observations/config`, {
     token: adminToken,

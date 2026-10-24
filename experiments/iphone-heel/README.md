@@ -27,7 +27,9 @@ Do not put tokens in a repository file, shell history, screenshot, chat, or publ
    npx playwright install chromium
    ```
 
-2. Start and secure the local Signal K server, enable `telltales-observations`, configure its independently generated ingress token, and create the roles above. Do not change the documented Docker loopback binding to a LAN binding. This experiment does not configure Signal K because that could overwrite an installation or weaken its exposure policy.
+2. Prepare the existing local Signal K server before launching the phone producer. Run `make iphone-heel-setup TELLTALES_SERVER_HOST=YOUR_MAC_LAN_HOST`; it prepares/reuses only the Telltales TLS identity and reports whether Signal K is already responding at its normal loopback endpoint. It never starts, stops, resets, changes ports, or changes credentials on Signal K. When no Signal K server is present, first confirm no other development instance is in use, then start the repository's pinned Compose service with `docker compose -f docker-compose.signalk.yml up -d`.
+
+   On a cold repository Compose start, complete Signal K's normal administrator setup at `http://127.0.0.1:3000/admin/`, then go to **Server → Plugins**. Verify **Telltales observations** is listed and enabled before configuring it. Generate a long random, distinct plugin ingress token, save it in the plugin configuration, and create the distinct Signal K roles above. The plugin remains fail-closed until that token is configured. Do not change the documented Docker loopback binding to a LAN binding, and do not launch another Signal K container on a different port. If the plugin is not listed, stop: use the plugin-list/startup diagnosis in [SIGNALK.md](../../SIGNALK.md), not an unauthenticated or second-server workaround.
 
 3. Choose the stable Mac host identity that Safari will use. A trusted-LAN IP from `ipconfig getifaddr en0` is suitable for typical Wi-Fi; an opt-in stable local DNS/mDNS name avoids re-trusting after an IP change only when Safari can resolve it and its certificate SAN exactly matches. Check it is not VPN, guest-network, or public. Prepare or reuse the local Telltales server identity:
 

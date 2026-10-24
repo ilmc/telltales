@@ -36,6 +36,7 @@ local-server-cert:
 	@sh scripts/prepare-local-server-certificate.sh "$(TELLTALES_SERVER_HOST)" "$(TELLTALES_SERVER_CERT_DIR)"
 
 iphone-heel-setup: local-server-cert
+	@sh scripts/check-signalk-iphone-heel-setup.sh
 	@printf '%s\n' 'TLS identity is ready. iphone-heel creates a new private pairing secret for each launch.'
 
 iphone-heel:
