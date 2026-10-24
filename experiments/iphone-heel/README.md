@@ -32,14 +32,23 @@ Do not put tokens in a repository file, shell history, screenshot, chat, or publ
 3. Choose the stable Mac host identity that Safari will use. A trusted-LAN IP from `ipconfig getifaddr en0` is suitable for typical Wi-Fi; an opt-in stable local DNS/mDNS name avoids re-trusting after an IP change only when Safari can resolve it and its certificate SAN exactly matches. Check it is not VPN, guest-network, or public. Prepare or reuse the local Telltales server identity:
 
    ```sh
-   make iphone-heel-setup TELLTALES_SERVER_HOST=192.0.2.10
+   # Replace with the actual trusted-LAN IP or resolvable local DNS name.
+   make iphone-heel-setup TELLTALES_SERVER_HOST=YOUR_MAC_LAN_HOST
    ```
+
+   `192.0.2.10`, used in examples elsewhere, is documentation-only TEST-NET space and is not a usable Mac address.
 
    `make local-server-cert` is also available for another explicitly authorised Telltales local HTTPS service. It stores the ignored server private key and certificate as `.local/certs/telltales-server.{key,crt,cer}` with restrictive permissions. It reuses the certificate only when it is valid for at least seven days and its SAN matches the selected host; it otherwise refuses replacement unless the operator deliberately runs `TELLTALES_SERVER_CERT_ROTATE=1 make local-server-cert TELLTALES_SERVER_HOST=…`. Rotation, expiry, or a changed host/IP requires client trust action again. The certificate is valid for 90 days, not permanently trusted or portable. The private key stays on this server and is never a phone credential.
 
    `make iphone-heel` generates a new random pairing secret for that launch, writes it briefly to ignored `.local/iphone-heel-pairing.env` for private phone entry, and removes it on shutdown. TLS trust never authorizes pairing, motion permission, or a sensor experiment. Legacy `.local/iphone-heel-cert` material is not reused: inspect and remove it deliberately after confirming it is not needed, then use the generic server identity.
 
-4. Once the producer starts, on the iPhone visit `https://TELLTALES_SERVER_HOST:8443/certificate.cer`. Install the downloaded profile, then enable full trust in **Settings → General → About → Certificate Trust Settings**. iOS may warn because it is a local self-signed certificate; do not bypass certificate warnings or use an untrusted network.
+4. Bootstrap trust **before** opening the HTTPS producer; do not download the first certificate through an untrusted HTTPS warning. On the Mac, display the public certificate's SHA-256 fingerprint:
+
+   ```sh
+   openssl x509 -in .local/certs/telltales-server.crt -noout -fingerprint -sha256
+   ```
+
+   Transfer only `.local/certs/telltales-server.cer` to the iPhone through a local, authenticated out-of-band route such as AirDrop. Never transfer `.key`, the `.local/certs` directory, tokens, or pairing material. Independently compare the public certificate's subject, SAN, and SHA-256 fingerprint with the value displayed on the Mac—for example, with both devices physically present or via a separately authenticated channel, not the certificate-transfer channel. Install the received certificate/profile in iOS Settings, inspect its details, and enable full trust in **Settings → General → About → Certificate Trust Settings**. Menu labels vary by iOS release; if the installed-profile view cannot show enough certificate detail to make the comparison, stop and use an approved certificate viewer or managed installation route rather than bypassing browser security. iOS may warn because this is a local self-signed certificate.
 
 ## Launch the experiment
 
@@ -99,10 +108,6 @@ Perform this with a human observing the phone and a **different** HUD screen. Fi
 | HUD has no heel                       | Check local Signal K/plugin status, token roles, ingress token, and Signal K path. Keep tokens out of diagnostics.                                   |
 | Heel becomes unavailable              | Check foreground state, Wi-Fi, fresh events, supported mount/range, and ingress. This fail-closed result must not be overridden.                     |
 
-After stopping all processes, remove local material only when it is no longer needed:
+After stopping all processes, normal cleanup needs no certificate deletion: `make iphone-heel` removes its per-launch pairing file on exit, and independently managed Signal K tokens should be revoked if created solely for the run. Preserve `.local/certs` for later authorised experiments on the same unchanged host.
 
-```sh
-rm -rf .local/certs .local/iphone-heel-pairing.env
-```
-
-This deletes the reusable local server identity and pairing secret, not independently managed Signal K tokens; revoke those in Signal K if created solely for the run. Do not remove `.local/certs` while another authorised local Telltales experiment uses it. Keep sanitized evidence only. Never publish credentials, certificate keys, vessel identifiers, locations, network addresses, raw traces, screenshots containing tokens, or private physical records.
+Only when retiring that host identity, after stopping every authorised local service that uses it, deliberately remove `.local/certs` and expect clients to need trust setup again. Keep sanitized evidence only. Never publish credentials, certificate keys, vessel identifiers, locations, network addresses, raw traces, screenshots containing tokens, or private physical records.

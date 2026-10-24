@@ -14,13 +14,29 @@ case "$host" in
   * ) san="IP:$host"; san_display="IP Address:$host" ;;
 esac
 
+has_exact_san() {
+  openssl x509 -in "$crt" -noout -ext subjectAltName | awk -v expected="$san_display" '
+    {
+      count = split($0, entries, ",")
+      for (i = 1; i <= count; i++) {
+        entry = entries[i]
+        sub(/^[[:space:]]+/, "", entry)
+        sub(/[[:space:]]+$/, "", entry)
+        if (entry == expected) found = 1
+      }
+    }
+    END { exit !found }
+  '
+}
+
 umask 077
 mkdir -p "$dir"
 
 if [ -f "$key" ] && [ -f "$crt" ] && [ -f "$cer" ]; then
   if openssl x509 -in "$crt" -noout -checkend 604800 >/dev/null 2>&1 && \
-    openssl x509 -in "$crt" -noout -ext subjectAltName | grep -F "$san_display" >/dev/null; then
+    has_exact_san; then
     echo "Reusing valid local Telltales server certificate for $host."
+    echo "Public certificate: $cer"
     exit 0
   fi
   if [ "${TELLTALES_SERVER_CERT_ROTATE:-}" != "1" ]; then
@@ -38,3 +54,4 @@ openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 90 \
 openssl x509 -in "$crt" -outform der -out "$cer"
 chmod 600 "$key" "$crt" "$cer"
 echo "Created local Telltales server certificate for $host (90 days)."
+echo "Public certificate: $cer"
