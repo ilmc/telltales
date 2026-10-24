@@ -1,4 +1,5 @@
 <!-- CODE-STYLE.md -->
+
 # Source readability policy
 
 **Rationale.** Telltales is meant to be maintained by different LLMs and humans without relying on the original conversation. Code should expose its own structure, while durable commentary preserves the reasoning that a future maintainer cannot deduce from syntax alone.
@@ -17,9 +18,9 @@ Name the intent, trust boundary, failure mode, physical meaning, coordinate fram
 
 ## Formatting
 
-Prefer consistent two-space indentation in JavaScript, LF endings and newline at EOF. `.editorconfig` establishes basic editor behaviour. A formatter such as Prettier with approximately 100-character print width is proposed, **not yet configured or required by CI**. Print width is a wrapping guideline, not a hard limit for long strings, URLs or unavoidable tokens. Linting is complementary and should target defects and dangerous patterns, not duplicate the formatter.
+Prefer consistent two-space indentation in JavaScript, LF endings and newline at EOF. `.editorconfig` establishes basic editor behaviour. Prettier's 100-character print width is a wrapping guideline, not a hard limit for long strings, URLs or unavoidable tokens. Linting is complementary and should target defects and dangerous patterns, not duplicate the formatter.
 
-When tooling is accepted, commit formatting separately from functional edits, run formatting idempotence and relevant tests, avoid unrelated rewrites, and document tool version and enforcement scope. Pure format-only commits may be recorded in `.git-blame-ignore-revs` if actually needed. Do not claim formatting rules are enforced just because they are documented.
+PR #28 is the companion tooling implementation: it pins Prettier, provides `npm run format` and `npm run format:check`, adds defect-oriented ESLint through `npm run lint`, keeps mechanical reformatting separate, and runs the checks in core CI. The policy by itself does **not** create enforcement on a revision that lacks that tooling; assess enforcement from the configuration and workflow present in the revision being reviewed. Run formatting idempotence and relevant tests, avoid unrelated rewrites, and document tool version and enforcement scope. Pure format-only commits may be recorded in `.git-blame-ignore-revs` if actually needed.
 
 ## Review implications
 
