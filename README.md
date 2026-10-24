@@ -64,6 +64,8 @@ More detail lives in the focused technical documents:
 - [Widget catalogue and contracts](WIDGETS.md)
 - [Configuration and templates](CONFIGURATION.md)
 - [Signal K development route](SIGNALK.md)
+- [Signal K architecture, reusable tooling and downstream ownership](SIGNALK-ARCHITECTURE.md)
+- [iPhone heel experiment quickstart (Draft PR #30 only)](IPHONE-HEEL-QUICKSTART.md)
 
 ## Why Telltales exists
 
