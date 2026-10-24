@@ -15,8 +15,16 @@ const digest = async (secret, salt = randomBytes(16).toString('base64url')) => (
 });
 export const parseCookies = (header = '') =>
   Object.fromEntries(header.split(';').map((part) => part.trim().split(/=(.*)/s, 2)));
-export async function createPairing({ file, code }) {
-  if (!code || code.length < 8) throw Error('IPHONE_HEEL_PAIRING_CODE must be 8+ characters');
+export async function createPairing({
+  file,
+  code,
+  now = () => Date.now(),
+  codeLifetimeMs = 15 * 60_000,
+  credentialLifetimeMs = 12 * 60 * 60_000,
+  reset = true,
+}) {
+  if (!code || code.length < 16)
+    throw Error('IPHONE_HEEL_PAIRING_CODE must be a random 16+ character temporary secret');
   await mkdir(dirname(file), { recursive: true, mode: 0o700 });
   let devices = {};
   const load = async () => {
@@ -31,21 +39,35 @@ export async function createPairing({ file, code }) {
     await writeFile(temp, JSON.stringify({ version: 1, devices }), { mode: 0o600 });
     await rename(temp, file);
   };
-  await load();
+  // A launcher restart deliberately revokes every browser cookie. The pairing code
+  // is an in-person, short-lived ceremony rather than a reusable LAN password.
+  if (reset) {
+    devices = {};
+    await save();
+  } else await load();
+  const expiresAt = now() + codeLifetimeMs;
   return Object.freeze({
-    async pair(candidate) {
-      if (!equal(String(candidate || ''), code)) return null;
+    async pair(candidate, at = now()) {
+      if (at > expiresAt || !equal(String(candidate || ''), code)) return null;
       const id = randomBytes(12).toString('base64url'),
         secret = randomBytes(32).toString('base64url');
-      devices[id] = { ...(await digest(secret)), pairedAt: new Date().toISOString() };
+      devices[id] = {
+        ...(await digest(secret)),
+        pairedAt: new Date(at).toISOString(),
+        expiresAt: new Date(at + credentialLifetimeMs).toISOString(),
+      };
       await save();
       return `${id}.${secret}`;
     },
-    async authenticate(cookie) {
+    async authenticate(cookie, at = now()) {
       await load();
       const [id, secret] = String(cookie || '').split('.', 2),
         device = devices[id];
-      return device && equal((await digest(secret, device.salt)).hash, device.hash) ? id : null;
+      if (!device || Date.parse(device.expiresAt) <= at) return null;
+      return equal((await digest(secret, device.salt)).hash, device.hash) ? id : null;
+    },
+    get expiresAt() {
+      return expiresAt;
     },
   });
 }

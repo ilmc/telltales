@@ -12,9 +12,19 @@ let ws,
   nativeAt = 0,
   lastSent = 0,
   lastFailure = '';
-const send = (value, valid, reason) =>
+const send = (value, valid, reason, sample = gravity) =>
   ws?.readyState === WebSocket.OPEN &&
-  ws.send(JSON.stringify({ type: 'heel', value, valid, reason }));
+  ws.send(
+    JSON.stringify({
+      type: 'heel',
+      value,
+      valid,
+      reason,
+      observedAt: sample?.observedAt || new Date().toISOString(),
+      method: sample?.source || 'no-browser-sensor',
+      calibration: sensor.calibrated ? 'manual-zero' : 'not-calibrated',
+    })
+  );
 function publish(v) {
   gravity = v || gravity;
   const r = sensor.measure(v);
@@ -28,11 +38,11 @@ function publish(v) {
     : r.reason;
   const now = Date.now();
   if (r.ok && now - lastSent > 200) {
-    send(r.heel, true);
+    send(r.heel, true, null, v);
     lastSent = now;
     lastFailure = '';
   } else if (!r.ok && r.reason !== lastFailure) {
-    send(null, false, r.reason);
+    send(null, false, r.reason, v);
     lastFailure = r.reason;
   }
 }
@@ -57,7 +67,9 @@ $('#pair').onclick = async () => {
 };
 $('#enable').onclick = async () => {
   try {
-    for (const Type of [DeviceMotionEvent, DeviceOrientationEvent])
+    const types = [globalThis.DeviceMotionEvent, globalThis.DeviceOrientationEvent].filter(Boolean);
+    if (!types.length) throw Error('no motion API exposed by this browser');
+    for (const Type of types)
       if (Type?.requestPermission && (await Type.requestPermission()) !== 'granted')
         throw Error('permission denied');
     enabled = true;
@@ -69,6 +81,8 @@ $('#enable').onclick = async () => {
   }
 };
 $('#zero').onclick = () => {
+  if (!gravity || Date.now() - Date.parse(gravity.observedAt) > 750)
+    return ($('#status').textContent = 'Zero rejected: wait for a fresh supported sensor event');
   const r = sensor.calibrate(gravity);
   if (!r.ok) return ($('#status').textContent = `Zero rejected: ${r.reason}`);
   publish(gravity);
@@ -82,7 +96,7 @@ addEventListener(
   'devicemotion',
   (e) => {
     if (enabled) {
-      const v = gravityFromMotion(e);
+      const v = gravityFromMotion(e, new Date().toISOString());
       if (v) {
         nativeAt = Date.now();
         publish(v);
@@ -94,7 +108,8 @@ addEventListener(
 addEventListener(
   'deviceorientation',
   (e) => {
-    if (enabled && Date.now() - nativeAt > 500) publish(gravityFromOrientation(e));
+    if (enabled && Date.now() - nativeAt > 500)
+      publish(gravityFromOrientation(e, new Date().toISOString()));
   },
   { passive: true }
 );

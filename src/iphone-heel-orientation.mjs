@@ -9,16 +9,22 @@ const finite = (v) => typeof v === 'number' && Number.isFinite(v);
 const length = (v) => Math.hypot(v.x, v.y, v.z);
 const projection = (v) => Math.hypot(v.x, v.z);
 
-export function gravityFromMotion(event) {
+export function gravityFromMotion(event, observedAt) {
   const v = event?.accelerationIncludingGravity;
   if (![v?.x, v?.y, v?.z].every(finite)) return null;
-  return { x: v.x, y: v.y, z: v.z, source: 'devicemotion gravity' };
+  return {
+    x: v.x,
+    y: v.y,
+    z: v.z,
+    source: 'devicemotion gravity',
+    ...(observedAt ? { observedAt } : {}),
+  };
 }
 
 // Safari can supply beta/gamma but withhold accelerationIncludingGravity.
 // Use both Euler components to reconstruct the gravity vector; gamma alone
 // is not a physically valid heel angle across larger changes in pitch.
-export function gravityFromOrientation(event) {
+export function gravityFromOrientation(event, observedAt) {
   if (![event?.beta, event?.gamma].every(finite)) return null;
   const beta = (event.beta * Math.PI) / 180;
   const gamma = (event.gamma * Math.PI) / 180;
@@ -27,6 +33,7 @@ export function gravityFromOrientation(event) {
     y: -Math.sin(beta) * Math.cos(gamma) * 9.81,
     z: Math.cos(beta) * Math.cos(gamma) * 9.81,
     source: 'deviceorientation beta+gamma fallback',
+    ...(observedAt ? { observedAt } : {}),
   };
 }
 
