@@ -113,4 +113,4 @@ The project is MIT licensed. See [LICENSE](LICENSE).
 
 ## Make test commands
 
-From the repository root, after `npm ci`, run `make tests` for configuration and Node tests, or `make end-to-end-tests` (alias: `make tests-e2e`) for the full disposable Signal K + Chromium integration test. The latter requires Docker Compose and Playwright Chromium (`npx playwright install chromium`); it starts and tears down its own local Signal K containers. The npm command `npm run test:signalk:e2e` remains available.
+From the repository root, after `npm ci`, run `make tests` for configuration and Node tests, or `make end-to-end-tests` (alias: `make tests-e2e`) for the full disposable Signal K + Chromium integration test. The latter requires Docker Compose and Playwright Chromium (`npx playwright install chromium`); it starts and tears down its own local Signal K containers. The npm command `npm run test:signalk:e2e` remains available. The full Signal K CI job runs on demand via **Actions → Signal K end-to-end → Run workflow**, and weekly on Sunday (04:00 UTC); routine PR and push checks run only the core and browser suites.
