@@ -68,7 +68,7 @@ try {
 
   await hud.evaluate(async ({url, token}) => await new Promise((resolve, reject) => { const socket = new WebSocket(`${url}/signalk/v1/stream?subscribe=none&token=${encodeURIComponent(token)}`); socket.onopen = () => { socket.send(JSON.stringify({context: 'vessels.urn:mrn:signalk:uuid:foreign', updates: [{timestamp: new Date().toISOString(), values: [{path: 'navigation.attitude.roll', value: 0.7}]}]})); setTimeout(() => { socket.close(); resolve(); }, 300); }; socket.onerror = () => reject(Error('foreign-vessel websocket failed')); }), {url: base.replace('http', 'ws'), token: readwriteToken});
   await sleep(500); assert.match(await hud.locator('.hud-heel .status').textContent(), /UNAVAILABLE/, 'foreign vessel changed self HUD');
-  console.log('Signal K E2E passed: readwrite 202, negative authorization/token cases rejected, signed heel HUD, invalidation, stale data, and foreign-vessel isolation.');
+
 } catch (error) {
   testError = error;
 } finally {
@@ -76,8 +76,15 @@ try {
   if (browser) {
     try { await browser.close(); } catch (error) { cleanupErrors.push(error); }
   }
-  if (app && !app.killed) {
-    try { app.kill('SIGTERM'); } catch (error) { cleanupErrors.push(error); }
+  if (app && app.exitCode === null && app.signalCode === null) {
+    try {
+      const exited = new Promise((resolve, reject) => {
+        app.once('exit', resolve);
+        app.once('error', reject);
+      });
+      app.kill('SIGTERM');
+      await exited;
+    } catch (error) { cleanupErrors.push(error); }
   }
   if (adminToken) for (const username of ['e2e-readwrite', 'e2e-readonly']) {
     try {
@@ -91,4 +98,5 @@ try {
   if (testError || cleanupErrors.length) {
     throw new AggregateError([...(testError ? [testError] : []), ...cleanupErrors], 'Signal K end-to-end run or cleanup failed');
   }
+  console.log('Signal K E2E passed and cleaned up: authorization, signed heel HUD, invalidation, staleness, and vessel isolation.');
 }
