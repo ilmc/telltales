@@ -1,3 +1,4 @@
+<!-- telltales/src/README.md -->
 # Source architecture — why it is separated
 
 Telltales must allow an instrument to display a measurement without knowing which device, recording or network transport supplied it. This is why observation meaning, transport and rendering are separate concerns instead of one tightly coupled sailing application.
