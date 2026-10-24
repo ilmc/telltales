@@ -100,12 +100,19 @@ npm run validate:config
 npm test
 npx playwright install chromium
 npm run test:browser
+npm run test:signalk:e2e
 ```
 
 GitHub Actions runs configuration validation plus the Node and Chromium suites on pushes and pull requests. Browser tests exercise the two-window transport, replay, unavailable states and reference-size HUD behaviour. Routine repository changes are expected to start from a tracked issue, use an issue-linked branch, and arrive through a pull request for review rather than being committed directly to `main`; see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+`npm run test:signalk:e2e` additionally requires Docker and Chromium. It starts a pinned, disposable Signal K server on a free loopback port, enables server security through its supported API, creates temporary `readwrite` and `readonly` identities, logs in to obtain JWTs, configures the plugin’s separate ingress secret, and removes users and the Docker volume afterwards. It uses synthetic observations only. It is intentionally slower than the ordinary browser suite because it verifies the 30-second stale-reading expiry.
 
 ## Direction, not roadmap
 
 Near-term work is expected to stay anchored in useful sailing instrumentation: better evidence from real sources, additional interchangeable adapters and widgets where justified, and layouts that remain understandable and testable. Candidate capabilities in `config.json` are explicitly candidates; their presence is not a delivery commitment.
 
 The project is MIT licensed. See [LICENSE](LICENSE).
+
+## Make test commands
+
+From the repository root, after `npm ci`, run `make tests` for configuration and Node tests, or `make end-to-end-tests` (alias: `make tests-e2e`) for the full disposable Signal K + Chromium integration test. The latter requires Docker Compose and Playwright Chromium (`npx playwright install chromium`); it starts and tears down its own local Signal K containers. The npm command `npm run test:signalk:e2e` remains available. The full Signal K CI job runs on demand via **Actions → Signal K end-to-end → Run workflow**, and weekly on Sunday (04:00 UTC); routine PR and push checks run only the core and browser suites.
