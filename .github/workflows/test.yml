@@ -27,7 +27,8 @@ jobs:
           path: test-results/sensor-groups-*.png
           if-no-files-found: warn
   signalk-e2e:
-    runs-on: ubuntu-latest
+    # Matches the repository-pinned Signal K ARM64 image.
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
