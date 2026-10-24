@@ -31,13 +31,11 @@ A single physical IMU may produce several measurements, while several sensors ma
 
 **This is a fictional, non-customer example**, not a boat profile, installation record or committed implementation. A reusable mixed-source fixture might contain:
 
-| Hypothetical physical source                    | Connection candidate                                                    | Standard observation intent                                     |
-| ----------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------- |
-| ST60+ depth and speed-through-water instruments | Suitable SeaTalk1 hardware bridge and supported Signal K integration    | Depth with **explicit known reference**, speed through water    |
-| Dedicated 2-axis inclinometer                   | Existing compatible adapter, ESP32/SensESP or plugin                    | `navigation.attitude.roll` (and pitch where supported)          |
-| USB GPS attached to an N150                     | Serial/NMEA input on an onboard Signal K instance or compatible gateway | `navigation.position`, COG, SOG                                 |
-| NASA wind instrument                            | Device-appropriate adapter (verify its specific interface first)        | Apparent wind angle and speed                                   |
-| OpenCPN chart view                              | Separate charting application / future external surface                 | Desired center-dial chart content; integration **not verified** |
+- **ST60+ depth and speed-through-water:** suitable SeaTalk1 bridge and Signal K integration, with an explicit depth reference.
+- **Dedicated two-axis inclinometer:** compatible adapter, ESP32/SensESP or plugin; standard roll (and pitch if available).
+- **USB GPS on an N150:** supported serial/NMEA route; position, course over ground and speed over ground.
+- **NASA wind instrument:** model-appropriate adapter to apparent wind angle and speed; verify its actual interface.
+- **OpenCPN chart surface:** prospective center-dial chart view; embedding is **not verified**.
 
 A named **Primary Sailing** sensor group would select *available* source identities for these observations. Source ownership (which boat/device produced it), available/selected data, and a reusable HUD template remain separate. Signal K's own source selection/priority should be reused where it satisfies the need; a Telltales group is a user-facing selection/composition convenience, not a replacement priority engine. A sensor from another boat or clubhouse would be **explicitly remote/shared**, not misrepresented as onboard.
 
