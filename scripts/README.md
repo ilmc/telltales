@@ -9,6 +9,11 @@ The scripts directory contains local development and verification utilities so a
 - **A small Node static server** avoids introducing Python or a production web framework solely to serve local files. The default loopback binding is intentional: a development server should not silently become public network infrastructure.
 - **Explicit validators** reject invalid public configuration and boat-profile assumptions before they reach a sailing display. Local boat-profile validation must not imply that private profiles are safe to publish or that a physical sensor has been calibrated.
 - **Ordinary command entry points** (`npm start`, `npm run validate:config`, `make tests`) are easier for new models and human developers to rediscover than undocumented orchestration.
+- **A reusable local TLS server identity helper** keeps certificate trust separate
+  from experiment-specific pairing. It verifies expiry and host SAN before reuse,
+  does not distribute the private key, and requires an explicit rotation request.
+  This enables authorised Telltales local HTTPS experiments on one unchanged host
+  without implying a universal CA, automatic client trust, or third-party use.
 
 ## Constraints
 

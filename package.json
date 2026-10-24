@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "node scripts/server.mjs",
+    "iphone-heel": "node experiments/iphone-heel/server.mjs",
     "test": "node --test test/*.test.mjs",
     "test:browser": "playwright test",
     "test:signalk:e2e": "node test/signalk-e2e.mjs",
@@ -16,6 +17,7 @@
     "@playwright/test": "^1.58.0",
     "eslint": "9.39.1",
     "globals": "17.13.0",
-    "prettier": "3.9.10"
+    "prettier": "3.9.10",
+    "ws": "^8.22.0"
   }
 }

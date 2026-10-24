@@ -1,0 +1,180 @@
+// test/iphone-heel-local.test.mjs
+import assert from 'node:assert/strict';
+import { lstat, mkdtemp, stat, symlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import test from 'node:test';
+import {
+  coordinatedLaunchPlan,
+  createPairingCode,
+  launchServices,
+  renewSignalKCredential,
+  signalKLoginUrl,
+  serviceLaunchDecision,
+  readConfig,
+  readSecret,
+  saveSecret,
+  setupDecision,
+  validateConfig,
+  writeConfig,
+} from '../scripts/iphone-heel-local.mjs';
+
+test('local iPhone settings and credentials persist with private permissions', async () => {
+  const file = join(await mkdtemp(join(tmpdir(), 'telltales-local-settings-')), 'iphone-heel.json');
+  const saved = await writeConfig({ host: '10.25.1.25', signalkPort: 3010 }, file);
+  assert.equal(saved.host, '10.25.1.25');
+  assert.match(saved.signalkIngress, /127\.0\.0\.1:3010/);
+  assert.deepEqual(await readConfig(file), saved);
+  assert.equal((await stat(file)).mode & 0o777, 0o600);
+  assert.equal((await stat(join(file, '..'))).mode & 0o777, 0o700);
+  await saveSecret('producer', 'writer-token', file);
+  await saveSecret('ingress', 'ingress-token', file);
+  assert.equal(await readSecret('producer', file), 'writer-token');
+  assert.equal((await readConfig(file)).credentials.ingress, 'ingress-token');
+  assert.equal((await readConfig(file)).credentials.viewer, undefined);
+});
+
+test('private configuration rejects a symlink before it can read credentials', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'telltales-local-settings-')),
+    target = join(directory, 'target.json'),
+    file = join(directory, 'iphone-heel.json');
+  await writeConfig({ host: '10.25.1.25' }, target);
+  await symlink(target, file);
+  await assert.rejects(readConfig(file), /unsafe local configuration file/);
+  assert.equal((await lstat(file)).isSymbolicLink(), true);
+});
+
+test('local iPhone settings reject absent host and invalid endpoints before launch', () => {
+  assert.throws(
+    () =>
+      validateConfig({
+        version: 2,
+        host: '',
+        signalkIngress: 'http://127.0.0.1:3000',
+        signalkStream: 'ws://127.0.0.1:3000',
+      }),
+    /missing/
+  );
+  assert.throws(
+    () =>
+      validateConfig({
+        version: 2,
+        host: '10.25.1.25',
+        signalkIngress: 'not a URL',
+        signalkStream: 'ws://127.0.0.1:3000',
+      }),
+    /invalid/
+  );
+});
+
+test('setup reuses a known host and asks only when discovery is ambiguous', () => {
+  assert.equal(
+    setupDecision({
+      config: { host: '10.25.1.25' },
+      hosts: ['10.25.1.25'],
+      certificateReady: true,
+      signalKStatus: true,
+      webStatus: false,
+    }).needsHost,
+    false
+  );
+  const ambiguous = setupDecision({
+    config: null,
+    hosts: ['10.0.0.2', '192.168.1.2'],
+    certificateReady: false,
+    signalKStatus: false,
+    webStatus: true,
+  });
+  assert.equal(ambiguous.needsHost, true);
+  assert.equal(ambiguous.webStatus, true, 'occupied web port is reported, not stopped');
+});
+
+test('pairing code uses an injected cryptographic integer source and retains six digits', () => {
+  assert.equal(
+    createPairingCode(() => 42),
+    '000042'
+  );
+  assert.equal(
+    createPairingCode(() => 999999),
+    '999999'
+  );
+});
+
+test('service lifecycle reuses only a recorded experiment server and refuses unknown owners', () => {
+  assert.equal(serviceLaunchDecision({ occupied: false, owned: false }), 'start');
+  assert.equal(serviceLaunchDecision({ occupied: true, owned: true }), 'reuse');
+  assert.equal(serviceLaunchDecision({ occupied: true, owned: false }), 'refuse');
+});
+
+test('credential renewal logs in at the saved Signal K endpoint and replaces only that role', async () => {
+  const config = {
+    signalkIngress: 'http://127.0.0.1:3000/plugins/telltales-observations/observations',
+    signalkStream: 'ws://127.0.0.1:3000/signalk/v1/stream?subscribe=none',
+  };
+  const saved = [];
+  await renewSignalKCredential({
+    config,
+    role: 'producer',
+    username: 'heel-writer',
+    password: 'not-recorded',
+    request: async (url, request) => {
+      assert.equal(url, 'http://127.0.0.1:3000/signalk/v1/auth/login');
+      assert.deepEqual(JSON.parse(request.body), {
+        username: 'heel-writer',
+        password: 'not-recorded',
+      });
+      return { ok: true, json: async () => ({ token: 'renewed-jwt' }) };
+    },
+    save: (role, token) => saved.push([role, token]),
+  });
+  assert.deepEqual(saved, [['producer', 'renewed-jwt']]);
+  assert.equal(signalKLoginUrl(config), 'http://127.0.0.1:3000/signalk/v1/auth/login');
+});
+
+test('credential renewal preserves existing private configuration after rejected login', async () => {
+  let saved = false;
+  await assert.rejects(
+    renewSignalKCredential({
+      config: {
+        signalkIngress: 'http://127.0.0.1:3000/plugins/telltales-observations/observations',
+        signalkStream: 'ws://127.0.0.1:3000/signalk/v1/stream?subscribe=none',
+      },
+      role: 'producer',
+      username: 'heel-writer',
+      password: 'wrong',
+      request: async () => ({ ok: false }),
+      save: () => (saved = true),
+    }),
+    /rejected/
+  );
+  assert.equal(saved, false);
+});
+
+test('coordinated startup preflights both services before it launches either one', () => {
+  assert.deepEqual(coordinatedLaunchPlan({ producer: 'start', hud: 'reuse' }), {
+    producer: 'start',
+    hud: 'reuse',
+  });
+  assert.throws(
+    () => coordinatedLaunchPlan({ producer: 'start', hud: 'refuse' }),
+    /both experiment ports/
+  );
+});
+
+test('failed HUD startup rolls back only the producer newly started in this launch', async () => {
+  const calls = [];
+  await assert.rejects(
+    launchServices(
+      { producer: 'start', hud: 'start' },
+      {
+        runService: async (role) => {
+          calls.push(`run:${role}`);
+          if (role === 'hud') throw Error('HUD port raced');
+        },
+        stopService: async (role) => calls.push(`stop:${role}`),
+      }
+    ),
+    /HUD port raced/
+  );
+  assert.deepEqual(calls, ['run:producer', 'run:hud', 'stop:producer']);
+});

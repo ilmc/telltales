@@ -1,0 +1,34 @@
+// test/iphone-heel-auth.test.mjs
+import assert from 'node:assert/strict';
+import { mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import test from 'node:test';
+import { createPairing, parseCookies } from '../experiments/iphone-heel/auth.mjs';
+
+test('iPhone pairing stores an expiring credential without accepting a wrong code', async () => {
+  const file = join(await mkdtemp(join(tmpdir(), 'telltales-iphone-heel-')), 'devices.json');
+  let now = 1000;
+  const pairing = await createPairing({
+    file,
+    code: '004219',
+    now: () => now,
+    credentialLifetimeMs: 10,
+  });
+  assert.equal(await pairing.pair('wrong-code'), null);
+  const credential = await pairing.pair('004219');
+  assert.match(credential, /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
+  assert.ok(await pairing.authenticate(credential));
+  assert.equal(await pairing.authenticate(`${credential}broken`), null);
+  now += 11;
+  assert.equal(await pairing.authenticate(credential), null);
+  assert.equal(parseCookies('one=1; two=2').two, '2');
+});
+
+test('iPhone pairing requires an exact six-digit numeric temporary code', async () => {
+  for (const code of ['12345', '1234567', 'abcdef', '12345x', 'a-random-temporary-code'])
+    await assert.rejects(
+      createPairing({ file: join(tmpdir(), 'unreachable-pairing.json'), code }),
+      /six-digit numeric/
+    );
+});

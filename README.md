@@ -64,6 +64,7 @@ More detail lives in the focused technical documents:
 - [Widget catalogue and contracts](WIDGETS.md)
 - [Configuration and templates](CONFIGURATION.md)
 - [Signal K development route](SIGNALK.md)
+- [Producer/consumer boundaries and hypothetical Zo configuration](SIGNALK-ARCHITECTURE.md)
 
 ## Why Telltales exists
 
@@ -110,6 +111,19 @@ npm run test:signalk:e2e
 GitHub Actions runs configuration validation plus the Node and Chromium suites on pushes and pull requests. Browser tests exercise the two-window transport, replay, unavailable states and reference-size HUD behaviour. Routine repository changes are expected to start from a tracked issue, use an issue-linked branch, and arrive through a pull request for review rather than being committed directly to `main`; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 `npm run test:signalk:e2e` additionally requires Docker and Chromium. It starts a pinned, disposable Signal K server on a free loopback port, enables server security through its supported API, creates temporary `readwrite` and `readonly` identities, logs in to obtain JWTs, configures the plugin’s separate ingress secret, and removes users and the Docker volume afterwards. It uses synthetic observations only. It is intentionally slower than the ordinary browser suite because it verifies the 30-second stale-reading expiry.
+
+## iPhone heel physical experiment
+
+The optional paired-iPhone heel experiment is a temporary, local HTTPS/WSS producer
+that publishes through the existing authorised Signal K route to a separate
+Telltales HUD. It labels **phone-relative inclination**, not certified vessel heel,
+and has a separate physical acceptance gate. From a fresh checkout, use
+`make help` to discover `local-server-cert`, `iphone-heel-setup`, `iphone-heel`,
+`iphone-heel-hud`, `iphone-heel-status`, `iphone-heel-stop`, `iphone-heel-credentials-producer`, `iphone-heel-test`, and `iphone-heel-e2e`; the complete secure setup, physical
+procedure, cleanup, troubleshooting, and evidence form are in
+[the iPhone heel experiment runbook](experiments/iphone-heel/README.md).
+Each producer launch creates one transient six-digit phone-entry code; it is not a
+Signal K token or the long random device credential issued after pairing.
 
 ## Direction, not roadmap
 

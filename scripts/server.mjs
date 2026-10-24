@@ -1,8 +1,10 @@
+// scripts/server.mjs
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import WebSocket, { WebSocketServer } from 'ws';
 
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 4173;
@@ -70,6 +72,56 @@ export function createStaticServer({ root = DEFAULT_ROOT } = {}) {
   });
 }
 
+// The viewer browser never receives a Signal K bearer token. This loopback-only
+// bridge is enabled only by the iPhone launcher, which reads that token from
+// private local configuration into this process environment.
+export function attachSignalKStreamProxy(server, { stream, token }) {
+  if (!stream || !token) return;
+  const clients = new WebSocketServer({ noServer: true, maxPayload: 2048 });
+  let activeClients = 0;
+  server.on('upgrade', (request, socket, head) => {
+    if (new URL(request.url, 'http://localhost').pathname !== '/local/signalk-stream') return;
+    const origin = request.headers.origin,
+      expectedOrigin = new URL(`http://${request.headers.host}`);
+    if (
+      expectedOrigin.hostname !== DEFAULT_HOST ||
+      origin !== expectedOrigin.origin ||
+      activeClients >= 2
+    )
+      return socket.destroy();
+    clients.handleUpgrade(request, socket, head, (client) => {
+      activeClients += 1;
+      const upstreamUrl = new URL(stream);
+      upstreamUrl.searchParams.set('token', token);
+      const upstream = new WebSocket(upstreamUrl);
+      const pendingMessages = [];
+      let closed = false;
+      const close = () => {
+        if (!closed) {
+          closed = true;
+          activeClients = Math.max(0, activeClients - 1);
+        }
+        if (client.readyState === client.OPEN) client.close();
+        if (upstream.readyState === upstream.OPEN) upstream.close();
+      };
+      client.on('message', (message) => {
+        if (upstream.readyState === upstream.OPEN) upstream.send(message);
+        else pendingMessages.push(message);
+      });
+      client.on('close', close);
+      upstream.on('open', () => {
+        for (const message of pendingMessages.splice(0)) upstream.send(message);
+      });
+      upstream.on(
+        'message',
+        (message) => client.readyState === client.OPEN && client.send(message)
+      );
+      upstream.on('close', close);
+      upstream.on('error', close);
+    });
+  });
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const host = process.env.HOST ?? DEFAULT_HOST;
   const port = Number.parseInt(process.env.PORT ?? `${DEFAULT_PORT}`, 10);
@@ -77,6 +129,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     throw new Error(`Invalid PORT: ${process.env.PORT}`);
   }
   const server = createStaticServer();
+  attachSignalKStreamProxy(server, {
+    stream: process.env.TELLTALES_SIGNALK_STREAM,
+    token: process.env.TELLTALES_SIGNALK_STREAM_TOKEN,
+  });
   server.listen(port, host, () => {
     console.log(`Telltales development server: http://${host}:${port}`);
   });
