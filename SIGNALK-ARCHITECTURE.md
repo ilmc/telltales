@@ -1,67 +1,45 @@
-# Telltales, Signal K and reusable boat configurations
+# Telltales and Signal K: architecture and ownership
 
-> **Status: architectural discussion / candidate direction, not an implemented product contract.** This document records product reasoning from the first real iPhone inclination experiment. It does not imply production hardware integrations, boat profiles, remote connections, or an OpenCPN chart embedding are already working. The optional iPhone experiment currently lives in [Draft PR #30](https://github.com/ilmc/telltales/pull/30); see the [draft experiment quickstart](IPHONE-HEEL-QUICKSTART.md). Its commands are **not yet available on `main`**.
+> **Status:** Proposed direction, not an implemented product contract. The iPhone experiment remains in [Draft PR #30](https://github.com/ilmc/telltales/pull/30). See the [draft quickstart](IPHONE-HEEL-QUICKSTART.md); those Make commands are not yet available on `main`.
 
-## Principle: interoperate rather than duplicate Signal K
+## Reuse Signal K
 
-Signal K already provides a standard marine observation vocabulary, vessel context, data-source provenance, server integrations and administration. Telltales should not pretend these capabilities are missing, require a custom driver for every device, or develop a competing general-purpose instrument server. Where existing Signal K, SeaTalk, NMEA or SensESP integrations can connect hardware, prefer them.
+Signal K already defines marine observations, source metadata, vessel context and integration mechanisms. Telltales should reuse its standards and existing hardware drivers rather than create a competing sensor server.
 
-Two separable areas of value emerged:
+A physical instrument may report several quantities, while several devices may report the same quantity. Keep device identity, source, observation, selected source, boat group and widget as separate concepts.
 
-1. **Producers and integration assistance.** Hardware- or browser-specific adapters translate native measurements (axes, units, mounting frame, calibration) into standard Signal K observations. An optional Telltales-origin adapter should be independently reusable by *any* Signal K consumer; do not make Telltales' HUD a prerequisite. A setup assistant can discover existing compatible adapters before proposing to implement another.
-2. **Consumers and declarative configuration.** HUDs, widgets, templates and sensor-group selection consume standard observations. Signal K itself may already provide administration and display functionality. Telltales can provide a simpler **infrastructure-as-code-like** discover → describe → review → apply workflow around supported Signal K configuration, without claiming unique ownership. No assumption that every setting has a stable API: unsupported changes require a documented boundary and human approval, not brittle undocumented UI automation. If suitable, these tools could be contributed upstream to Signal K.
+## Independent producers and consumers
 
-These pieces should be installable/useful independently and communicate through standard interfaces rather than an obligatory Telltales-specific server.
+**Producers** read physical instruments or browser motion, calibrate axes and reference frames, and publish standard Signal K observations. Where an existing adapter, SeaTalk bridge, NMEA connection or SensESP implementation works, prefer it. A new producer should work with other Signal K consumers without requiring the Telltales HUD.
 
-### Ownership boundary: toolkit versus downstream deployment
+**Consumers** subscribe to normalised observations and provide widgets, templates, history and display composition. Telltales can offer a friendlier experience, but a user may also configure and consume data using Signal K directly. Upstream adoption of useful tools by Signal K would be welcome.
 
-**Telltales is the reusable upstream toolkit.** Its public repository owns generic adapters where justified, Signal K integration helpers, declarative schemas/validators, sample *fictional* groups, widgets, layouts, documentation and tests. It should supply **working, hardware-category examples** for the mix a downstream Zo installation may need: SeaTalk/ST60+ depth and speed-through-water, USB GPS, inclinometer/heel, NASA wind, and OpenCPN as an external chart surface where technically possible. These examples must be portable, sanitised and independently verifiable, without asserting a specific physical connection or installation. It does **not** own, configure, or store the final instrument inventory, source credentials, sensor bindings or customised HUD of a particular customer boat.
+A proposed configuration helper could discover sources, describe desired setup declaratively, show an explicit change preview and apply only supported Signal K settings with approval. Do not assume all administration features have a stable API.
 
-**Downstream consumers own their installations.** Each consumer uses the public tooling to discover and configure their real Signal K sources, build sensor groups, select displays and customise layouts in its own project/environment. Real boat configuration, sensor availability, identifying information, and test evidence stay downstream unless an explicitly authorised, sanitised and generally reusable contribution is upstreamed. A downstream consumer may be called Boat Optimist and may use a group called **Zo**; that does not make Zo a Telltales-owned example, fixture, installation or configuration. Avoid importing downstream materials into public Telltales without consent and scope review.
+## Data semantics and presentation
 
-## Observation semantics and widget presentation
+Signal K `navigation.attitude.roll` is a signed angle in radians. A physical inclinometer adapter must normalise its sign, mounting frame, reference and units before publishing. Preserve source, event time, calibration and freshness. Sensors with different accuracy can still agree on the standard meaning.
 
-A device may output signed degrees, radians, orientation quaternions, or manufacturer-specific axes. Normalise at the *source/adapter boundary* to the chosen standard reference frame and Signal K unit, and retain timing/source/calibration information. In particular, Signal K `navigation.attitude.roll` uses signed radians. The source adapter must establish the physical port/starboard orientation for its actual mount: do not correct an upside-down display by silently changing standard conventions.
+A sailor-facing numeric widget may display `12° Port` or `12° Starboard` rather than a negative magnitude. A trend chart may use a signed axis. Presentation must not silently redefine the underlying observation or conceal stale measurements.
 
-A numeric heel widget may display **12° Port** or **12° Starboard** (unsigned magnitude plus explicit direction), while a chart may retain a signed value. A widget is free to transform **presentation** without silently rewriting the underlying observation. Smoothing of visual output must not conceal stale, unavailable or uncalibrated data.
+## Ownership: toolkit versus deployment
 
-A single physical IMU may produce several measurements, while several sensors may independently produce the same observation. Thus **hardware device**, **data source**, **standard observation**, **source preference**, **boat/group** and **widget** are distinct concepts. Normalisation makes readings comparable in meaning, not equally accurate.
+**Telltales owns reusable open-source tooling and examples:** generic adapters when justified, integration helpers, configuration schemas and validators, synthetic sensor groups, widgets, layouts and tests. Its examples should be usable without copying any customer's identifying configuration.
 
-## Generic mixed-source examples (fictional; inspired by downstream needs)
+**Boat Optimist owns the real Zo installation:** its sensor inventory, source credentials, configured groups, chosen widgets and customised HUD. Zo is not a Telltales-owned profile or a deployed Telltales example. Private downstream information must not be copied upstream without explicit authority and appropriate sanitisation.
 
-**This is a fictional, non-customer example**, not a boat profile, installation record or committed implementation. A reusable mixed-source fixture might contain:
+Telltales may provide **generic working examples** for SeaTalk/ST60+ depth and speed through water, USB GPS, inclinometer/heel, NASA wind, and an OpenCPN external chart surface where technically possible. Each example must distinguish synthetic validation from real-hardware evidence; these integrations are not currently claimed to work end to end.
 
-- **ST60+ depth and speed-through-water:** suitable SeaTalk1 bridge and Signal K integration, with an explicit depth reference.
-- **Dedicated two-axis inclinometer:** compatible adapter, ESP32/SensESP or plugin; standard roll (and pitch if available).
-- **USB GPS on an N150:** supported serial/NMEA route; position, course over ground and speed over ground.
-- **NASA wind instrument:** model-appropriate adapter to apparent wind angle and speed; verify its actual interface.
-- **OpenCPN chart surface:** prospective center-dial chart view; embedding is **not verified**.
+A fictional `Primary Sailing` group can illustrate how users select preferred sources for depth, water speed, wind, GPS and roll. Sensor ownership and source priority should use Signal K's existing mechanisms where appropriate. A borrowed boat or shared clubhouse observation is explicitly external, not falsely marked as onboard.
 
-A named **Primary Sailing** sensor group would select *available* source identities for these observations. Source ownership (which boat/device produced it), available/selected data, and a reusable HUD template remain separate. Signal K's own source selection/priority should be reused where it satisfies the need; a Telltales group is a user-facing selection/composition convenience, not a replacement priority engine. A sensor from another boat or clubhouse would be **explicitly remote/shared**, not misrepresented as onboard.
+## iPhone experiment: learn before simplifying
 
-A template might place OpenCPN chart content in a center dial and wind, depth, speed and heel widgets around it. This is a **candidate composition**, not current evidence of working OpenCPN embedding. Browser frame/security restrictions and a supported chart surface need validation.
+The experimental route is iPhone Safari, a temporary local HTTPS producer, a Telltales-specific ingress plugin, Signal K and a separate HUD. Real motion reached Signal K and a HUD, but the automatically launched token-free HUD and physical port/starboard presentation had outstanding issues in the initial trial.
 
-## Why somebody might choose Telltales—or not
+Investigate whether a standard Signal K-hosted app or another supported adapter can replace the temporary bridge. Do not remove the proven route until the replacement has been demonstrated. The browser still needs HTTPS, motion permission, trusted authentication, source identity and freshness handling.
 
-An ST60+ connected via SeaTalk hardware can feed Signal K directly; a USB GPS may feed Signal K using supported serial/NMEA integration; an inclinometer might publish through SensESP. All can work without Telltales. The advantage of Telltales would be to **help discover, configure, review and reuse** these connections, group observations for a chosen vessel/session, and compose a sailor-friendly HUD. Do not require a Telltales plugin for already standard Signal K feeds.
+## Deployment and next evidence
 
-It is legitimate for a consumer to use Signal K's native configuration/UI instead. Telltales' declarative helper may eventually be useful as an upstream Signal K contribution; avoid entrenching unnecessary proprietary abstractions.
+Prefer local boat data availability so a live HUD does not depend on cellular coverage. A secured remote or home Signal K service may be useful for monitoring and history, but no such connection is implemented or required here.
 
-## Architectural consequence of the iPhone experiment
-
-The current experimental path is **iPhone Safari → temporary local Telltales HTTPS/WSS producer → custom Signal K ingress plugin → Signal K stream → Telltales HUD**. It proved real phone motion can traverse Signal K. It also exposed onboarding friction, direction/presentation issues, and a token-free HUD proxy issue. These are documented physical findings, not a production architecture commitment.
-
-Investigate whether a Signal K-hosted webapp or another supported authenticated ingress/adapter can let the phone publish **standard Signal K observations** without the Telltales-specific bridge. HTTPS is still needed for browser motion permissions, and authentication, pairing, timestamp freshness and source identity still need thought. **Keep the current proven experiment until an alternative genuinely works**; do not remove it on architectural preference alone.
-
-## Local / remote topology
-
-Default towards an onboard or otherwise local Signal K data hub so the HUD can keep working during cellular loss. An outbound secured link to a home/remote server can enable history and remote monitoring, but is a future option, **not** a required dependency and not implemented here. Treat vessel position/privacy and connectivity interruptions explicitly; do not expose unauthenticated marine data to the internet.
-
-## Proposed decisions and next evidence
-
-- Document Signal K-standard semantics as the contract for source adapters and widgets; define any Telltales-specific selection layer as optional and narrower than Signal K itself.
-- Evaluate existing iPhone/IMU producers and supported Signal K ingestion before investing in a standalone Telltales sensor driver.
-- Verify physical port/starboard direction and numeric UI independently of raw signed Signal K data.
-- Prove the launcher-opened **token-free** HUD works with live phone readings, and perform real start → stop → fresh-terminal restart.
-- Provide generic schema, tooling and synthetic examples for users to create their **own** boat sensor groups and customised HUDs; do not implement or publish any customer's specific profile or wiring in Telltales.
-- Keep exploratory product choices separate from accepted Issue #17 / PR #30 physical test criteria. Major scope additions should be separately reviewed rather than silently added to the current PR.
+Prove token-free iPhone-to-HUD behaviour, signed orientation and restart in the physical experiment. Build generic, independently testable examples for downstream consumers without adding the real Zo configuration to Telltales. Broader scope belongs in separately reviewed work rather than silently expanding PR #30.
