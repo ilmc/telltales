@@ -16,7 +16,7 @@ Run `make iphone-heel-setup` once. The small wizard reuses a previously saved LA
 
 For normal use, run `make iphone-heel-start`. It verifies the saved loopback Signal K endpoint without starting or changing it, retrieves the three Keychain credentials, then starts or reuses only the recorded HTTPS phone producer and authenticated HUD. It opens the HUD and prints the phone URL plus the command to privately retrieve the current pairing code. After use, run `make iphone-heel-stop`; it stops only command-verified experiment processes, preserving Signal K, certificates, config and Keychain items. A later `make iphone-heel-start` from a fresh Terminal recreates only the stopped experiment services.
 
-Run `make iphone-heel-credentials` only for first provisioning or after a Signal K credential is revoked or expires. It asks without echoing and stores the separate readwrite, plugin-ingress, and readonly credentials in macOS Keychain. They are never stored in `.local`, environment setup files, URLs, or shell history. The one-command normal path from any new Terminal is then `make iphone-heel`, followed by `make iphone-heel-hud` on the HUD screen. The HUD URL is printed without a token: its loopback server reads the readonly token from Keychain and proxies only the Signal K stream to the same-origin browser.
+Run `make iphone-heel-credentials-all` only for first provisioning. Later, recover only what is missing or expired: `make iphone-heel-credentials-producer` (or `make iphone-heel-credentials-viewer`) securely asks for that Signal K identity's username and password, logs in to the saved loopback Signal K endpoint, and replaces only its JWT in macOS Keychain. `make iphone-heel-credentials-ingress` asks only for the separately configured plugin ingress secret; Signal K cannot derive that secret from a login. The prompts do not echo passwords or put them in arguments, environment setup files, URLs, shell history, or `.local`. A rejected login or unreachable server changes nothing and reports a recovery diagnostic. The normal subsequent path from any new Terminal is `make iphone-heel-start`; the HUD URL is printed without a token because its loopback server reads the readonly token from Keychain and proxies only the Signal K stream to the same-origin browser.
 
 `make iphone-heel-pairing-code` privately prints the active six-digit code from Keychain while the producer is running. `make iphone-heel-status` reports saved setup, port reachability, and recorded experiment-owned processes; `make iphone-heel-stop` sends SIGTERM only to processes started by these launchers. A process occupying port 4173 but not recorded as experiment-owned is left untouched and produces a clear diagnostic rather than an `EADDRINUSE` crash. These commands do not create, reset, stop, or weaken Signal K.
 
@@ -64,27 +64,26 @@ Do not put tokens in a repository file, shell history, screenshot, chat, or publ
 
 ## Launch the experiment
 
-Use three terminals/screens so the phone, producer, and HUD remain independent.
+Use a separate phone and HUD screen. The Mac launcher supervises both experiment services, so routine use and a fresh-Terminal restart need only one command.
 
-1. In terminal A, safely set the producer-only tokens, then launch:
+1. For first provisioning only, put the distinct producer, ingress, and viewer credentials in Keychain. Then start or reuse both experiment services:
 
    ```sh
-   read -rs SIGNALK_TOKEN; export SIGNALK_TOKEN; printf '\n'
-   read -rs SIGNALK_INGRESS_TOKEN; export SIGNALK_INGRESS_TOKEN; printf '\n'
-   make iphone-heel
+   make iphone-heel-credentials-all
+   make iphone-heel-start
    ```
 
-   The producer reads its credentials and current pairing code from Keychain; it never prints Signal K tokens. The producer runs the temporary phone service on port 8443. Privately run `make iphone-heel-pairing-code` and enter that value into the iPhone page—do not pass it as a command argument, environment variable, URL, or copied terminal transcript. Restarting revokes browser credentials and creates a new code. Pairing expires after five minutes; five failed guesses from any combination of addresses close that launch's pairing ceremony, and only one phone can pair. The long random browser credential expires after 12 hours.
+   The producer reads its credentials and current pairing code from Keychain; it never prints Signal K tokens. The producer runs the temporary phone service on port 8443. Privately run `make iphone-heel-pairing-code` and enter that value into the iPhone page—do not pass it as a command argument, environment variable, URL, or copied terminal transcript. Restarting revokes browser credentials and creates a new code. Pairing expires after five minutes; five failed guesses from any combination of addresses close that launch's pairing ceremony, and only one phone can pair. The long random browser credential expires after 12 hours. If launch reports an absent or revoked credential, run the exact targeted recovery command it prints, then rerun `make iphone-heel-start`; it does not require repeating setup, certificate trust, ingress setup, or unrelated credential entry.
 
 2. Complete certificate trust. In Safari open `https://TELLTALES_SERVER_HOST:8443/`, privately read and enter the pairing value, choose **Enable Motion** after the visible gesture, hold the supported mount level, and press **Zero here** only after fresh sensor input appears. Record the actual source method: `devicemotion gravity` when supplied, otherwise the beta/gamma orientation fallback. Neither is a calibration claim. Subsequent authorised Telltales experiments on the same unchanged host may reuse the trusted TLS identity; each still needs its own pairing/session/permission flow.
 
-3. In terminal B run `make iphone-heel-hud`. On a different screen, open:
+3. `make iphone-heel-start` opens the authenticated HUD. If the browser did not open, use the printed token-free local URL on a different screen:
 
    ```text
    http://127.0.0.1:4173/?view=hud&template=sailing-hud&mode=signalk
    ```
 
-   If the Signal K deployment requires a stream token, append a short-lived readonly `signalkToken` locally in the browser. Do not paste, save, screenshot, or share that URL: query strings are retained easily. The HUD is presentation-only.
+   Do not append a Signal K token: the loopback proxy supplies the Keychain-held readonly credential and rejects cross-origin clients. The HUD is presentation-only.
 
 4. Independently inspect Signal K `navigation.attitude.roll`. Telltales maps the phone source to degrees for its HUD and Signal K uses radians; metadata must identify `iphone-browser-motion`, method, calibration state, phone observation time, and server receipt time. A valid value is LIVE only while fresh phone observations continue.
 
@@ -107,7 +106,7 @@ Perform this with a human observing the phone and a **different** HUD screen. Fi
 3. Tilt approximately **10°, 30°, and 60° port**, holding each to compare the separate HUD's signed degrees with `navigation.attitude.roll` radians. Repeat **10°, 30°, and 60° starboard**. Record expected and observed direction, approximate scale, freshness, and pass/fail. Do not claim precision beyond the reference used.
 4. Hold a stationary supported angle beyond the HUD freshness threshold while Safari remains foregrounded. It must remain LIVE because phone events continue; record refresh and source timestamps.
 5. Test: denied/absent permission, invalid/edge-on mount and over-range, Safari background/silence, Wi-Fi interruption, and Wi-Fi reconnection. Each invalid/disconnected/stale condition must become unavailable, and a new valid reading must recover without an old unavailable update overwriting it.
-6. Stop the producer and confirm HUD unavailable, then stop HUD and Signal K. Record all failures and limitations. Automated results, local preview, synthetic injection, and same-screen mirroring are not substitutes for acceptance.
+6. Run `make iphone-heel-stop`, confirm both experiment processes close and the existing Signal K service remains running, then start again from a fresh Terminal. Record all failures and limitations. Automated results, local preview, synthetic injection, and same-screen mirroring are not substitutes for acceptance.
 
 ## Troubleshooting and cleanup
 

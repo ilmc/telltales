@@ -118,7 +118,7 @@ that publishes through the existing authorised Signal K route to a separate
 Telltales HUD. It labels **phone-relative inclination**, not certified vessel heel,
 and has a separate physical acceptance gate. From a fresh checkout, use
 `make help` to discover `local-server-cert`, `iphone-heel-setup`, `iphone-heel`,
-`iphone-heel-hud`, `iphone-heel-status`, `iphone-heel-stop`, `iphone-heel-test`, and `iphone-heel-e2e`; the complete secure setup, physical
+`iphone-heel-hud`, `iphone-heel-status`, `iphone-heel-stop`, `iphone-heel-credentials-producer`, `iphone-heel-test`, and `iphone-heel-e2e`; the complete secure setup, physical
 procedure, cleanup, troubleshooting, and evidence form are in
 [the iPhone heel experiment runbook](experiments/iphone-heel/README.md).
 Each producer launch creates one transient six-digit phone-entry code; it is not a

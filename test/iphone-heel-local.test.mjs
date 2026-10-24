@@ -5,7 +5,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import {
+  coordinatedLaunchPlan,
   createPairingCode,
+  launchServices,
+  renewSignalKCredential,
+  signalKLoginUrl,
   serviceLaunchDecision,
   readConfig,
   setupDecision,
@@ -83,4 +87,77 @@ test('service lifecycle reuses only a recorded experiment server and refuses unk
   assert.equal(serviceLaunchDecision({ occupied: false, owned: false }), 'start');
   assert.equal(serviceLaunchDecision({ occupied: true, owned: true }), 'reuse');
   assert.equal(serviceLaunchDecision({ occupied: true, owned: false }), 'refuse');
+});
+
+test('credential renewal logs in at the saved Signal K endpoint and replaces only that role', async () => {
+  const config = {
+    signalkIngress: 'http://127.0.0.1:3000/plugins/telltales-observations/observations',
+    signalkStream: 'ws://127.0.0.1:3000/signalk/v1/stream?subscribe=none',
+  };
+  const saved = [];
+  await renewSignalKCredential({
+    config,
+    role: 'producer',
+    username: 'heel-writer',
+    password: 'not-recorded',
+    request: async (url, request) => {
+      assert.equal(url, 'http://127.0.0.1:3000/signalk/v1/auth/login');
+      assert.deepEqual(JSON.parse(request.body), {
+        username: 'heel-writer',
+        password: 'not-recorded',
+      });
+      return { ok: true, json: async () => ({ token: 'renewed-jwt' }) };
+    },
+    save: (role, token) => saved.push([role, token]),
+  });
+  assert.deepEqual(saved, [['producer', 'renewed-jwt']]);
+  assert.equal(signalKLoginUrl(config), 'http://127.0.0.1:3000/signalk/v1/auth/login');
+});
+
+test('credential renewal preserves existing Keychain data after rejected login', async () => {
+  let saved = false;
+  await assert.rejects(
+    renewSignalKCredential({
+      config: {
+        signalkIngress: 'http://127.0.0.1:3000/plugins/telltales-observations/observations',
+        signalkStream: 'ws://127.0.0.1:3000/signalk/v1/stream?subscribe=none',
+      },
+      role: 'producer',
+      username: 'heel-writer',
+      password: 'wrong',
+      request: async () => ({ ok: false }),
+      save: () => (saved = true),
+    }),
+    /rejected/
+  );
+  assert.equal(saved, false);
+});
+
+test('coordinated startup preflights both services before it launches either one', () => {
+  assert.deepEqual(coordinatedLaunchPlan({ producer: 'start', hud: 'reuse' }), {
+    producer: 'start',
+    hud: 'reuse',
+  });
+  assert.throws(
+    () => coordinatedLaunchPlan({ producer: 'start', hud: 'refuse' }),
+    /both experiment ports/
+  );
+});
+
+test('failed HUD startup rolls back only the producer newly started in this launch', async () => {
+  const calls = [];
+  await assert.rejects(
+    launchServices(
+      { producer: 'start', hud: 'start' },
+      {
+        runService: async (role) => {
+          calls.push(`run:${role}`);
+          if (role === 'hud') throw Error('HUD port raced');
+        },
+        stopService: async (role) => calls.push(`stop:${role}`),
+      }
+    ),
+    /HUD port raced/
+  );
+  assert.deepEqual(calls, ['run:producer', 'run:hud', 'stop:producer']);
 });

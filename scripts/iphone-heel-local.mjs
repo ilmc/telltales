@@ -3,6 +3,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { randomInt } from 'node:crypto';
 import { chmod, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { get as httpsGet } from 'node:https';
 import { networkInterfaces } from 'node:os';
 import net from 'node:net';
 import { resolve } from 'node:path';
@@ -49,6 +50,44 @@ export function validateConfig(value) {
     }
   }
   return Object.freeze(value);
+}
+export function signalKLoginUrl(config) {
+  const ingress = new URL(config.signalkIngress);
+  return `${ingress.protocol}//${ingress.host}/signalk/v1/auth/login`;
+}
+export async function renewSignalKCredential({
+  config,
+  role,
+  username,
+  password,
+  request = fetch,
+  save = saveSecret,
+}) {
+  if (!['producer', 'viewer'].includes(role))
+    throw Error('only producer or viewer Signal K credentials can be renewed by login');
+  if (!username || !password)
+    throw Error('Signal K username and password are required; no credential changed');
+  let response;
+  try {
+    response = await request(signalKLoginUrl(config), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+      signal: AbortSignal.timeout(5000),
+    });
+  } catch {
+    throw Error('could not reach the saved Signal K login endpoint; no credential changed');
+  }
+  if (!response.ok) throw Error('Signal K login was rejected; no credential changed');
+  let body;
+  try {
+    body = await response.json();
+  } catch {
+    throw Error('Signal K login returned no usable credential; no credential changed');
+  }
+  if (!body || typeof body.token !== 'string' || !body.token)
+    throw Error('Signal K login returned no usable credential; no credential changed');
+  save(role, body.token);
 }
 export async function readConfig(file = configFile) {
   try {
@@ -116,7 +155,10 @@ async function readState() {
 }
 async function saveState(value) {
   await mkdir(local, { recursive: true, mode: 0o700 });
-  await writeFile(stateFile, `${JSON.stringify(value)}\n`, { mode: 0o600 });
+  const temporary = `${stateFile}.${process.pid}.tmp`;
+  await writeFile(temporary, `${JSON.stringify(value)}\n`, { mode: 0o600 });
+  await rename(temporary, stateFile);
+  await chmod(stateFile, 0o600);
 }
 async function register(role, pid) {
   const state = await readState();
@@ -161,13 +203,33 @@ function requiredSecret(name) {
   try {
     return readSecret(name);
   } catch {
-    throw Error(`missing or revoked ${name} Keychain credential; run make iphone-heel-credentials`);
+    const recovery = ['producer', 'viewer'].includes(name)
+      ? `make iphone-heel-credentials-${name}`
+      : 'make iphone-heel-credentials-ingress';
+    throw Error(`missing or revoked ${name} Keychain credential; run ${recovery}`);
   }
 }
 export const createPairingCode = (random = randomInt) => `${random(1_000_000)}`.padStart(6, '0');
 export function serviceLaunchDecision({ occupied, owned }) {
   if (!occupied) return 'start';
   return owned ? 'reuse' : 'refuse';
+}
+export function coordinatedLaunchPlan({ producer, hud }) {
+  if (!['start', 'reuse'].includes(producer) || !['start', 'reuse'].includes(hud))
+    throw Error('both experiment ports must be available or owned before startup');
+  return Object.freeze({ producer, hud });
+}
+export async function launchServices(plan, { runService, stopService }) {
+  const started = [];
+  try {
+    for (const role of ['producer', 'hud']) {
+      await runService(role, plan[role]);
+      if (plan[role] === 'start') started.push(role);
+    }
+  } catch (error) {
+    for (const role of started.reverse()) await stopService(role).catch(() => {});
+    throw error;
+  }
 }
 async function ownedProcess(role) {
   const state = await readState(),
@@ -180,25 +242,83 @@ async function ownedProcess(role) {
     role === 'producer' ? 'experiments/iphone-heel/server.mjs' : 'scripts/server.mjs'
   );
 }
+function probeHttps(port) {
+  return new Promise((resolve) => {
+    const request = httpsGet(
+      { host: '127.0.0.1', port, path: '/', rejectUnauthorized: false, timeout: 500 },
+      (response) => {
+        response.resume();
+        resolve(response.statusCode === 200);
+      }
+    );
+    request.once('timeout', () => request.destroy());
+    request.once('error', () => resolve(false));
+  });
+}
+async function ready(role) {
+  if (role === 'producer') return probeHttps(8443);
+  try {
+    return (await fetch('http://127.0.0.1:4173/', { signal: AbortSignal.timeout(500) })).ok;
+  } catch {
+    return false;
+  }
+}
+async function inspectService(role) {
+  const port = role === 'producer' ? 8443 : 4173;
+  const decision = serviceLaunchDecision({
+    occupied: await portOpen(port),
+    owned: await ownedProcess(role),
+  });
+  if (decision === 'reuse' && !(await ready(role)))
+    throw Error(
+      `recorded experiment-owned ${role} process is not ready; run make iphone-heel-stop first`
+    );
+  if (decision === 'refuse')
+    throw Error(
+      role === 'producer'
+        ? 'port 8443 is occupied by a non-experiment service; it was left untouched.'
+        : 'port 4173 already has a web server; it is not experiment-owned, so it was left running.'
+    );
+  return decision;
+}
 function openHud() {
   spawn('open', ['http://127.0.0.1:4173/?view=hud&template=sailing-hud&mode=signalk'], {
     detached: true,
     stdio: 'ignore',
   }).unref();
 }
-async function run(role, { background = false } = {}) {
+async function stopRole(role) {
+  const state = await readState(),
+    item = state[role];
+  if (!item || !(await ownedProcess(role))) return false;
+  process.kill(item.pid, 'SIGTERM');
+  for (let tries = 0; tries < 20; tries += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    try {
+      process.kill(item.pid, 0);
+    } catch {
+      await unregister(role);
+      return true;
+    }
+  }
+  throw Error(`experiment-owned ${role} did not stop; it was left running`);
+}
+async function waitForReady(role) {
+  for (let tries = 0; tries < 30; tries += 1) {
+    if (await ready(role)) return;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw Error(`${role} did not become ready`);
+}
+async function run(role, { background = false, decision } = {}) {
   const config = await readConfig(),
     env = { ...process.env, TELLTALES_SERVER_HOST: config.host };
   let command;
   if (role === 'producer') {
-    const decision = serviceLaunchDecision({
-      occupied: await portOpen(8443),
-      owned: await ownedProcess('producer'),
-    });
-    if (decision === 'reuse')
+    const launch = decision ?? (await inspectService('producer'));
+    if (launch === 'reuse') {
       return console.log('Reusing the existing experiment-owned phone producer.');
-    if (decision === 'refuse')
-      throw Error('port 8443 is occupied by a non-experiment service; it was left untouched.');
+    }
     env.SIGNALK_TOKEN = requiredSecret('producer');
     env.SIGNALK_INGRESS_TOKEN = requiredSecret('ingress');
     env.SIGNALK_INGRESS = config.signalkIngress;
@@ -207,19 +327,12 @@ async function run(role, { background = false } = {}) {
     env.IPHONE_HEEL_PAIRING_CODE = pairing;
     command = ['node', 'experiments/iphone-heel/server.mjs'];
   } else {
-    const decision = serviceLaunchDecision({
-      occupied: await portOpen(4173),
-      owned: await ownedProcess('hud'),
-    });
-    if (decision === 'reuse') {
+    const launch = decision ?? (await inspectService('hud'));
+    if (launch === 'reuse') {
       console.log('Reusing the existing experiment-owned authenticated HUD server.');
       openHud();
       return;
     }
-    if (decision === 'refuse')
-      throw Error(
-        'port 4173 already has a web server; it is not experiment-owned, so it was left running. Stop it yourself or use its existing authenticated iPhone HUD launcher.'
-      );
     env.TELLTALES_SIGNALK_STREAM = config.signalkStream;
     env.TELLTALES_SIGNALK_STREAM_TOKEN = requiredSecret('viewer');
     command = ['node', 'scripts/server.mjs'];
@@ -233,10 +346,16 @@ async function run(role, { background = false } = {}) {
     clear = () => role === 'producer' && deleteSecret('pairing');
   await register(role, child.pid);
   if (background) child.unref();
+  try {
+    await waitForReady(role);
+  } catch (error) {
+    if (!child.killed) child.kill('SIGTERM');
+    await unregister(role);
+    clear();
+    throw error;
+  }
   if (role === 'hud') {
-    for (let tries = 0; tries < 20 && !(await portOpen(4173)); tries += 1)
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    if (await portOpen(4173)) openHud();
+    openHud();
   }
   for (const signal of background ? [] : ['SIGINT', 'SIGTERM', 'SIGHUP'])
     process.on(signal, () => {
@@ -256,8 +375,14 @@ async function start() {
       'Signal K is not responding on its saved loopback endpoint; it was not started or changed.'
     );
   for (const name of ['producer', 'ingress', 'viewer']) requiredSecret(name);
-  await run('producer', { background: true });
-  await run('hud', { background: true });
+  const plan = coordinatedLaunchPlan({
+    producer: await inspectService('producer'),
+    hud: await inspectService('hud'),
+  });
+  await launchServices(plan, {
+    runService: (role, decision) => run(role, { background: true, decision }),
+    stopService: stopRole,
+  });
   console.log(
     `Phone: https://${config.host}:8443/ — enter the current six-digit code from: make iphone-heel-pairing-code`
   );
@@ -266,9 +391,10 @@ async function start() {
 async function status() {
   const state = await readState(),
     config = await readConfig().catch(() => null);
+  const signalkPort = config ? Number(new URL(config.signalkIngress).port || 80) : 3000;
   const report = {
     configured: Boolean(config),
-    signalK: await portOpen(3000),
+    signalK: await portOpen(signalkPort),
     web: await portOpen(4173),
     processes: {},
   };
@@ -294,8 +420,7 @@ async function stop() {
       console.log(`No matching experiment-owned ${role} process; left PID ${item.pid} untouched.`);
       continue;
     }
-    process.kill(item.pid, 'SIGTERM');
-    console.log(`Stopped experiment-owned ${role} process.`);
+    if (await stopRole(role)) console.log(`Stopped experiment-owned ${role} process.`);
   }
 }
 async function main() {
@@ -334,6 +459,21 @@ async function main() {
         .on('end', () => resolve(text.trim()));
     });
     saveSecret(arguments_[0], value);
+  } else if (command === 'renew-token') {
+    const [username = '', ...password] = await new Promise((resolve) => {
+      let text = '';
+      process.stdin
+        .setEncoding('utf8')
+        .on('data', (part) => (text += part))
+        .on('end', () => resolve(text.split(/\r?\n/)));
+    });
+    await renewSignalKCredential({
+      config: await readConfig(),
+      role: arguments_[0],
+      username,
+      password: password.join('\n').replace(/\n$/, ''),
+    });
+    console.log(`Renewed ${arguments_[0]} Signal K credential in macOS Keychain.`);
   } else if (command === 'pairing-code') console.log(requiredSecret('pairing'));
   else if (command === 'host') console.log((await readConfig()).host);
   else if (command === 'producer' || command === 'hud') await run(command);
@@ -342,7 +482,7 @@ async function main() {
   else if (command === 'stop') await stop();
   else
     throw Error(
-      'usage: iphone-heel-local.mjs setup|save-secret|pairing-code|producer|hud|start|status|stop'
+      'usage: iphone-heel-local.mjs setup|save-secret|renew-token|pairing-code|producer|hud|start|status|stop'
     );
 }
 if (process.argv[1] === fileURLToPath(import.meta.url))

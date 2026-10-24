@@ -2,7 +2,8 @@
 
 .PHONY: help test tests end-to-end-tests tests-e2e local-server-cert iphone-heel-setup iphone-heel \
 	iphone-heel-hud iphone-heel-credentials iphone-heel-pairing-code iphone-heel-test iphone-heel-e2e \
-	iphone-heel-status iphone-heel-stop iphone-heel-start
+	iphone-heel-status iphone-heel-stop iphone-heel-start iphone-heel-credentials-producer \
+	iphone-heel-credentials-viewer iphone-heel-credentials-ingress iphone-heel-credentials-all
 
 TELLTALES_SERVER_CERT_DIR ?= .local/certs
 IPHONE_HEEL_PAIRING_FILE ?= .local/iphone-heel-pairing.env
@@ -15,7 +16,7 @@ help:
 	  '                           Prepare/reuse a trusted local Telltales server identity' \
 	  'make iphone-heel-setup TELLTALES_SERVER_HOST=host-or-ip' \
 	  '                           Save/reuse non-secret local settings and TLS identity' \
-	  'make iphone-heel-credentials Store producer/viewer credentials in macOS Keychain' \
+	  'make iphone-heel-credentials-producer Renew only the Signal K producer credential in Keychain' \
 	  'make iphone-heel           Run paired iPhone producer from any Terminal' \
 	  'make iphone-heel-start     Start/reuse phone producer and authenticated HUD' \
 	  'make iphone-heel-pairing-code Privately reveal the current short pairing code' \
@@ -34,9 +35,8 @@ test tests:
 end-to-end-tests tests-e2e:
 	npm run test:signalk:e2e
 
-# The reusable server identity is checked rather than overwritten. Each producer
-# launch creates a separate ignored, mode-600 six-digit pairing code; Signal K tokens
-# remain caller-supplied environment variables.
+# The reusable server identity is checked rather than overwritten. Credentials stay in
+# macOS Keychain; each producer launch creates a separate short pairing code.
 local-server-cert:
 	@test -n "$(TELLTALES_SERVER_HOST)" || { echo 'set TELLTALES_SERVER_HOST to the Mac LAN hostname or IP' >&2; exit 2; }
 	@sh scripts/prepare-local-server-certificate.sh "$(TELLTALES_SERVER_HOST)" "$(TELLTALES_SERVER_CERT_DIR)"
@@ -45,10 +45,13 @@ iphone-heel-setup:
 	@node scripts/iphone-heel-local.mjs setup "$(TELLTALES_SERVER_HOST)"
 	@sh scripts/prepare-local-server-certificate.sh "$$(node scripts/iphone-heel-local.mjs host)" "$(TELLTALES_SERVER_CERT_DIR)"
 	@sh scripts/check-signalk-iphone-heel-setup.sh
-	@printf '%s\n' 'TLS identity is ready. Next: make iphone-heel-credentials (once or after expiry/revocation).'
+	@printf '%s\n' 'TLS identity is ready. First provisioning: make iphone-heel-credentials-all; later recovery uses the targeted credential command printed by start.'
 
 iphone-heel-credentials:
-	@sh scripts/iphone-heel-credentials.sh
+	@sh scripts/iphone-heel-credentials.sh "$(IPHONE_HEEL_CREDENTIAL)"
+
+iphone-heel-credentials-producer iphone-heel-credentials-viewer iphone-heel-credentials-ingress iphone-heel-credentials-all:
+	@sh scripts/iphone-heel-credentials.sh "$(subst iphone-heel-credentials-,,$@)"
 
 iphone-heel:
 	@test -r "$(TELLTALES_SERVER_CERT_DIR)/telltales-server.key" || { echo 'run make iphone-heel-setup TELLTALES_SERVER_HOST=… first' >&2; exit 2; }
