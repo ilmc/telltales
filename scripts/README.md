@@ -1,4 +1,5 @@
 <!-- scripts/README.md -->
+
 # Development scripts — rationale
 
 The scripts directory contains local development and verification utilities so an unfamiliar contributor or AI model can run a reproducible Telltales experiment without relying on private instructions or a heavyweight application framework.
