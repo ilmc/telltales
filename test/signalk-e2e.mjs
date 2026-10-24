@@ -89,6 +89,6 @@ try {
     await command('docker', ['compose', '-p', project, '-f', compose, 'down', '--volumes', '--remove-orphans']);
   } catch (error) { cleanupErrors.push(error); }
   if (testError || cleanupErrors.length) {
-    throw new AggregateError([...testError ? [testError] : [], ...cleanupErrors], 'Signal K end-to-end run or cleanup failed');
+    throw new AggregateError([...(testError ? [testError] : []), ...cleanupErrors], 'Signal K end-to-end run or cleanup failed');
   }
 }
