@@ -30,37 +30,20 @@ export function observationToDelta(observation){
 }
 function fromValue(path,value){let mapped=REVERSE[path];if(!mapped||!finite(value))return null;return{id:mapped.id,unit:mapped.unit,value:mapped.fromSignalK(value)};}
 export function deltaToObservations(delta,{now=new Date()}={}){
-  if(!delta||!Array.isArray(delta.updates))return[];let out=[];
+  // Do not trust a broad or explicitly configured stream to isolate vessels.
+  if(!delta||delta.context!=='vessels.self'||!Array.isArray(delta.updates))return[];let out=[];
   for(const update of delta.updates){let at=stamp(update.timestamp)?update.timestamp:now.toISOString(), meta=new Map,values=[];
     for(const v of update.values||[]){let m=/^telltales\.observationMeta\.(.+)$/.exec(v?.path||'');if(m&&v.value?.id)meta.set(v.value.id,v.value);else values.push(v)}
-    for(const v of values){let mapped=REVERSE[v?.path],id=mapped?.id,parsed=fromValue(v?.path,v?.value),m=meta.get(id);if(!parsed&&!(id&&m?.valid===false))continue;if(!parsed)parsed={id,unit:mapped.unit,value:null};let sourceId=m?.sourceId||update.source?.label||'signalk-external';
+    const emitted=new Set,unavailable=(id,m)=>{let mapped=REVERSE[SIGNALK_PATHS[id]],sourceId=m?.sourceId||update.source?.label||'signalk-external';out.push({id,unit:m?.unit||mapped.unit,value:null,observedAt:m?.observedAt||at,sourceId,valid:false,simulated:m?.simulated===true,replay:m?.replay||undefined,provenance:m?.provenance||{kind:'signalk',source:update.source?.label||'unknown'},reason:m?.reason||'Signal K source reports unavailable'});emitted.add(id)};
+    for(const v of values){let mapped=REVERSE[v?.path],id=mapped?.id,parsed=fromValue(v?.path,v?.value),m=meta.get(id);if(!id)continue;if(v?.value===null||m?.valid===false){unavailable(id,m);continue}if(!parsed)continue;let sourceId=m?.sourceId||update.source?.label||'signalk-external';
       // An external Signal K producer is not claimed to be simulated.
-      out.push({id:parsed.id,unit:m?.unit||parsed.unit,value:m?.valid===false?null:parsed.value,observedAt:m?.observedAt||at,sourceId,valid:m?.valid!==false,simulated:m?.simulated===true,replay:m?.replay||undefined,provenance:m?.provenance||{kind:'signalk',source:update.source?.label||'unknown'},...(m?.valid===false?{reason:m.reason||'Signal K source reports unavailable'}:{})});
-    }
+      out.push({id:parsed.id,unit:m?.unit||parsed.unit,value:parsed.value,observedAt:m?.observedAt||at,sourceId,valid:true,simulated:m?.simulated===true,replay:m?.replay||undefined,provenance:m?.provenance||{kind:'signalk',source:update.source?.label||'unknown'}});
+    }for(const [id,m] of meta)if(m?.valid===false&&SIGNALK_PATHS[id]&&!emitted.has(id))unavailable(id,m);
   } return out;
 }
 export function createSignalKSubscriber({url,onObservation,onState,WebSocketImpl=globalThis.WebSocket,reconnectMs=1000}){
   let ws,closed=false,timer;
-  // Signal K may fan a single app.handleMessage update into separate stream
-  // messages. Retain a null native value briefly so its adjacent Telltales
-  // metadata can still make the corresponding HUD reading unavailable.
-  const pendingNulls=new Map(),state=x=>onState?.(x),subscription={context:'vessels.self',subscribe:[...Object.values(SIGNALK_PATHS),...Object.keys(SIGNALK_PATHS).map(id=>`telltales.observationMeta.${key(id)}`)].map(path=>({path,period:100}))};
-  const receive=delta=>{
-    for(const update of delta?.updates||[]){
-      const nulls=new Map(),invalid=[];
-      for(const value of update.values||[]){
-        const id=Object.entries(SIGNALK_PATHS).find(([,path])=>path===value?.path)?.[0];
-        if(id&&value.value===null)nulls.set(id,value);
-        if(/^telltales\.observationMeta\./.test(value?.path||'')&&value.value?.valid===false&&SIGNALK_PATHS[value.value.id])invalid.push(value);
-      }
-      for(const value of invalid){
-        const id=value.value.id,raw=nulls.get(id)||pendingNulls.get(id);
-        if(raw&&!nulls.has(id))for(const observation of deltaToObservations({updates:[{timestamp:update.timestamp,source:update.source,values:[{path:SIGNALK_PATHS[id],value:null},value]}]}))onObservation(observation);
-        pendingNulls.delete(id);
-      }
-      for(const [id,value] of nulls)if(!invalid.some(meta=>meta.value.id===id))pendingNulls.set(id,value);
-    }
-    for(const observation of deltaToObservations(delta))onObservation(observation);
-  };
+  const state=x=>onState?.(x),subscription={context:'vessels.self',subscribe:[...Object.values(SIGNALK_PATHS),...Object.keys(SIGNALK_PATHS).map(id=>`telltales.observationMeta.${key(id)}`)].map(path=>({path,period:100}))};
+  const receive=delta=>{for(const observation of deltaToObservations(delta))onObservation(observation)};
   const connect=()=>{if(closed)return;try{state({connected:false,reason:'Connecting to Signal K'});ws=new WebSocketImpl(url)}catch(e){state({connected:false,reason:`Signal K unavailable: ${e.message}`});timer=setTimeout(connect,reconnectMs);return}ws.onopen=()=>{ws.send(JSON.stringify(subscription));state({connected:true})};ws.onmessage=e=>{try{receive(JSON.parse(e.data))}catch{state({connected:false,reason:'Malformed Signal K delta rejected'})}};ws.onerror=()=>state({connected:false,reason:'Signal K connection error'});ws.onclose=()=>{state({connected:false,reason:'Signal K disconnected'});if(!closed)timer=setTimeout(connect,reconnectMs)}};connect();return{close(){closed=true;clearTimeout(timer);ws?.close()}};
 }
