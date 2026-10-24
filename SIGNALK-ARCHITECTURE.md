@@ -19,7 +19,6 @@ These pieces should be installable/useful independently and communicate through 
 
 **Downstream consumers own their installations.** Each consumer uses the public tooling to discover and configure their real Signal K sources, build sensor groups, select displays and customise layouts in its own project/environment. Real boat configuration, sensor availability, identifying information, and test evidence stay downstream unless an explicitly authorised, sanitised and generally reusable contribution is upstreamed. A downstream consumer may be called Boat Optimist and may use a group called **Zo**; that does not make Zo a Telltales-owned example, fixture, installation or configuration. Avoid importing downstream materials into public Telltales without consent and scope review.
 
-
 ## Observation semantics and widget presentation
 
 A device may output signed degrees, radians, orientation quaternions, or manufacturer-specific axes. Normalise at the *source/adapter boundary* to the chosen standard reference frame and Signal K unit, and retain timing/source/calibration information. In particular, Signal K `navigation.attitude.roll` uses signed radians. The source adapter must establish the physical port/starboard orientation for its actual mount: do not correct an upside-down display by silently changing standard conventions.
@@ -32,13 +31,13 @@ A single physical IMU may produce several measurements, while several sensors ma
 
 **This is a fictional, non-customer example**, not a boat profile, installation record or committed implementation. A reusable mixed-source fixture might contain:
 
-| Hypothetical physical source | Connection candidate | Standard observation intent |
-| --- | --- | --- |
-| ST60+ depth and speed-through-water instruments | Suitable SeaTalk1 hardware bridge and supported Signal K integration | Depth with **explicit known reference**, speed through water |
-| Dedicated 2-axis inclinometer | Existing compatible adapter, ESP32/SensESP or plugin | `navigation.attitude.roll` (and pitch where supported) |
-| USB GPS attached to an N150 | Serial/NMEA input on an onboard Signal K instance or compatible gateway | `navigation.position`, COG, SOG |
-| NASA wind instrument | Device-appropriate adapter (verify its specific interface first) | Apparent wind angle and speed |
-| OpenCPN chart view | Separate charting application / future external surface | Desired center-dial chart content; integration **not verified** |
+| Hypothetical physical source                    | Connection candidate                                                    | Standard observation intent                                     |
+| ----------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------- |
+| ST60+ depth and speed-through-water instruments | Suitable SeaTalk1 hardware bridge and supported Signal K integration    | Depth with **explicit known reference**, speed through water    |
+| Dedicated 2-axis inclinometer                   | Existing compatible adapter, ESP32/SensESP or plugin                    | `navigation.attitude.roll` (and pitch where supported)          |
+| USB GPS attached to an N150                     | Serial/NMEA input on an onboard Signal K instance or compatible gateway | `navigation.position`, COG, SOG                                 |
+| NASA wind instrument                            | Device-appropriate adapter (verify its specific interface first)        | Apparent wind angle and speed                                   |
+| OpenCPN chart view                              | Separate charting application / future external surface                 | Desired center-dial chart content; integration **not verified** |
 
 A named **Primary Sailing** sensor group would select *available* source identities for these observations. Source ownership (which boat/device produced it), available/selected data, and a reusable HUD template remain separate. Signal K's own source selection/priority should be reused where it satisfies the need; a Telltales group is a user-facing selection/composition convenience, not a replacement priority engine. A sensor from another boat or clubhouse would be **explicitly remote/shared**, not misrepresented as onboard.
 
