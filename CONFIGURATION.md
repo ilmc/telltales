@@ -6,6 +6,8 @@ Templates select widget IDs and named slots at the 1540×720 reference size. `sa
 
 `zo-hud-surface` adds an opt-in, native 720×720 `surface` slot without altering the legacy HUD, simulator, replay, Signal K, or sensor-group flows. `/?view=surface-fixture` is its synthetic/public-safe producer. It publishes versioned frames and lifecycle events on a separate browser channel; it does not supply observations or navigation data.
 
+Surface HUD templates declare their own widget IDs in `layout.slots`: the renderer positions the configured reusable speed, heel, wind, depth and surface widgets rather than reserving a boat-specific instrument slot. `surface-hud-instruments` is the public-safe 1540×720 example: a central 720px surface plus SOG, signed heel, apparent wind and depth. Its simulated fixture is not a chart or navigation display. The HUD remains presentation-only; source controls belong in the separate simulator.
+
 Sources declare a capability ID. The catalogue distinguishes implemented browser simulation (`virtual-*`), local-file replay (`recorded-nmea-rmc`, `recorded-nmea-mwv`), and the explicitly unimplemented `nasa-marine-wind-candidate`. No physical adapter or discovery is present.
 
 RMC replay provides recorded SOG. MWV replay accepts only `R` apparent-wind sentences in a timestamp envelope: `2026-...Z | $IIMWV,...*CS`. MWV lacks time itself, so unwrapped data is rejected; envelope time is original recorded observation time, while replay scheduling is synthetic playback time. Load `examples/synthetic-mwv.nmea` in the simulator. Change widget props, bindings, source capability IDs, and template slots/sizes in JSON, then validate and preview—no runtime LLM is involved.
