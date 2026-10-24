@@ -13,6 +13,13 @@ Two separable areas of value emerged:
 
 These pieces should be installable/useful independently and communicate through standard interfaces rather than an obligatory Telltales-specific server.
 
+### Ownership boundary: toolkit versus downstream deployment
+
+**Telltales is the reusable upstream toolkit.** Its public repository owns generic adapters where justified, Signal K integration helpers, declarative schemas/validators, sample *fictional* groups, widgets, layouts, documentation and tests. It does **not** own, configure, or store the final instrument inventory, source credentials, sensor bindings or customised HUD of a particular customer boat.
+
+**Downstream consumers own their installations.** Each consumer uses the public tooling to discover and configure their real Signal K sources, build sensor groups, select displays and customise layouts in its own project/environment. Real boat configuration, sensor availability, identifying information, and test evidence stay downstream unless an explicitly authorised, sanitised and generally reusable contribution is upstreamed. A downstream consumer may be called Boat Optimist and may use a group called **Zo**; that does not make Zo a Telltales-owned example, fixture, installation or configuration. Avoid importing downstream materials into public Telltales without consent and scope review.
+
+
 ## Observation semantics and widget presentation
 
 A device may output signed degrees, radians, orientation quaternions, or manufacturer-specific axes. Normalise at the *source/adapter boundary* to the chosen standard reference frame and Signal K unit, and retain timing/source/calibration information. In particular, Signal K `navigation.attitude.roll` uses signed radians. The source adapter must establish the physical port/starboard orientation for its actual mount: do not correct an upside-down display by silently changing standard conventions.
@@ -21,9 +28,9 @@ A numeric heel widget may display **12° Port** or **12° Starboard** (unsigned 
 
 A single physical IMU may produce several measurements, while several sensors may independently produce the same observation. Thus **hardware device**, **data source**, **standard observation**, **source preference**, **boat/group** and **widget** are distinct concepts. Normalisation makes readings comparable in meaning, not equally accurate.
 
-## Zo — hypothetical boat/group example only
+## Generic mixed-source example (fictional)
 
-**Zo is a hypothetical configuration example, not an actual boat, customer installation, or existing Telltales profile.** It is not a stand-in for a deployed Amzer'zo record. The proposed first mixed-source fixture might contain:
+**This is a fictional, non-customer example**, not a boat profile, installation record or committed implementation. A reusable mixed-source fixture might contain:
 
 | Hypothetical physical source | Connection candidate | Standard observation intent |
 | --- | --- | --- |
@@ -33,7 +40,7 @@ A single physical IMU may produce several measurements, while several sensors ma
 | NASA wind instrument | Device-appropriate adapter (verify its specific interface first) | Apparent wind angle and speed |
 | OpenCPN chart view | Separate charting application / future external surface | Desired center-dial chart content; integration **not verified** |
 
-A named **Zo Sailing** sensor group would select *available* source identities for these observations. Source ownership (which boat/device produced it), available/selected data, and a reusable HUD template remain separate. Signal K's own source selection/priority should be reused where it satisfies the need; a Telltales group is a user-facing selection/composition convenience, not a replacement priority engine. A sensor from another boat or clubhouse would be **explicitly remote/shared**, not misrepresented as onboard.
+A named **Primary Sailing** sensor group would select *available* source identities for these observations. Source ownership (which boat/device produced it), available/selected data, and a reusable HUD template remain separate. Signal K's own source selection/priority should be reused where it satisfies the need; a Telltales group is a user-facing selection/composition convenience, not a replacement priority engine. A sensor from another boat or clubhouse would be **explicitly remote/shared**, not misrepresented as onboard.
 
 A template might place OpenCPN chart content in a center dial and wind, depth, speed and heel widgets around it. This is a **candidate composition**, not current evidence of working OpenCPN embedding. Browser frame/security restrictions and a supported chart surface need validation.
 
@@ -59,5 +66,5 @@ Default towards an onboard or otherwise local Signal K data hub so the HUD can k
 - Evaluate existing iPhone/IMU producers and supported Signal K ingestion before investing in a standalone Telltales sensor driver.
 - Verify physical port/starboard direction and numeric UI independently of raw signed Signal K data.
 - Prove the launcher-opened **token-free** HUD works with live phone readings, and perform real start → stop → fresh-terminal restart.
-- Prototype one synthetic **Zo** group/profile first; do not imply that hardware or OpenCPN is already integrated.
+- Provide generic schema, tooling and synthetic examples for users to create their **own** boat sensor groups and customised HUDs; do not implement or publish any customer's specific profile or wiring in Telltales.
 - Keep exploratory product choices separate from accepted Issue #17 / PR #30 physical test criteria. Major scope additions should be separately reviewed rather than silently added to the current PR.
