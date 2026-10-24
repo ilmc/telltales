@@ -2,86 +2,107 @@
 
 # iPhone heel: physical sensor experiment (Issue #17)
 
-This is a **generic Telltales** experiment. A phone is a temporary instrument source,
-not a calibrated vessel sensor. No boat, private network, club or location data belongs here.
+This is a temporary local experiment in publishing **phone-relative inclination** to the existing Telltales Signal K route. It is not a calibrated vessel-heel instrument, navigation equipment, a phone integration product, or evidence of a supported boat installation. A passing automated run or a visible phone preview does not complete physical acceptance.
 
-## Earlier evidence and current baseline
+The phone and its temporary producer carry no boat identity, location, route, or cloud service. The source is one paired foreground iPhone over local HTTPS/WSS; the existing Telltales HUD is a separate Signal K consumer. This preserves the repository's source/transport/presentation boundaries rather than adding a second display path.
 
-The first working producer, transport and Signal K consumer were developed in
-[Boat Optimist draft PR #17](https://github.com/ilmc/boat-optimist/pull/17).
-During the owner's hotel-Wi-Fi physical trial, real iPhone and Mac screens
-exchanged observations. The original gamma-offset heuristic under-read and
-flipped sign at larger angles; the vector revision initially failed to zero
-because Safari did not supply accelerationIncludingGravity. A beta/gamma
-fallback was added **after** that trial and has not yet passed physical validation.
+## What this needs
 
-Current Telltales main already supports an explicit, authorised Signal K ingress,
-`navigation.attitude.roll` in radians, fail-closed invalidation, and a reusable
-heel presentation. Do not duplicate its widget/measurement/Signal K contracts.
+Use a fresh checkout on a Mac with Node.js/npm, OpenSSL, `make`, and a current Safari-capable iPhone. The Mac and iPhone must be on the same trusted LAN; do not attempt this over a public, hotel, or guest network. The Mac needs a local Signal K server with the `telltales-observations` plugin enabled. Follow [SIGNALK.md](../../SIGNALK.md) to keep the server bound to loopback: the phone producer reaches only the Mac's HTTPS port, while the producer talks to Signal K on its local loopback endpoint.
 
-## Run the two-screen experiment
+Before starting, arrange three separate credentials:
 
-Start a local Signal K server and enable this repository's
-`telltales-observations` plugin as described in [`SIGNALK.md`](../../SIGNALK.md).
-Create a `readwrite` Signal K token and configure the plugin's distinct ingress
-token. Find the Mac's LAN IP, then run:
+- a Signal K **readwrite** token, used only by the producer to post observations;
+- the plugin's distinct ingress bearer token, used only by the producer;
+- a Signal K **readonly** token only if the separate HUD's stream requires one.
+
+Do not put tokens in a repository file, shell history, screenshot, chat, or public URL. Supply the first two only in the producer terminal using a protected shell mechanism. For example, `read -rs SIGNALK_TOKEN` followed by `export SIGNALK_TOKEN` avoids displaying it; repeat for `SIGNALK_INGRESS_TOKEN`. Do not use shell `set -x`.
+
+## First-time preparation
+
+1. Install dependencies and Chromium when browser/E2E checks are needed:
+
+   ```sh
+   npm ci
+   npx playwright install chromium
+   ```
+
+2. Start and secure the local Signal K server, enable `telltales-observations`, configure its independently generated ingress token, and create the roles above. Do not change the documented Docker loopback binding to a LAN binding. This experiment does not configure Signal K because that could overwrite an installation or weaken its exposure policy.
+
+3. Choose the stable Mac host identity that Safari will use. A trusted-LAN IP from `ipconfig getifaddr en0` is suitable for typical Wi-Fi; an opt-in stable local DNS/mDNS name avoids re-trusting after an IP change only when Safari can resolve it and its certificate SAN exactly matches. Check it is not VPN, guest-network, or public. Prepare or reuse the local Telltales server identity:
+
+   ```sh
+   make iphone-heel-setup TELLTALES_SERVER_HOST=192.0.2.10
+   ```
+
+   `make local-server-cert` is also available for another explicitly authorised Telltales local HTTPS service. It stores the ignored server private key and certificate as `.local/certs/telltales-server.{key,crt,cer}` with restrictive permissions. It reuses the certificate only when it is valid for at least seven days and its SAN matches the selected host; it otherwise refuses replacement unless the operator deliberately runs `TELLTALES_SERVER_CERT_ROTATE=1 make local-server-cert TELLTALES_SERVER_HOST=…`. Rotation, expiry, or a changed host/IP requires client trust action again. The certificate is valid for 90 days, not permanently trusted or portable. The private key stays on this server and is never a phone credential.
+
+   `make iphone-heel` generates a new random pairing secret for that launch, writes it briefly to ignored `.local/iphone-heel-pairing.env` for private phone entry, and removes it on shutdown. TLS trust never authorizes pairing, motion permission, or a sensor experiment. Legacy `.local/iphone-heel-cert` material is not reused: inspect and remove it deliberately after confirming it is not needed, then use the generic server identity.
+
+4. Once the producer starts, on the iPhone visit `https://TELLTALES_SERVER_HOST:8443/certificate.cer`. Install the downloaded profile, then enable full trust in **Settings → General → About → Certificate Trust Settings**. iOS may warn because it is a local self-signed certificate; do not bypass certificate warnings or use an untrusted network.
+
+## Launch the experiment
+
+Use three terminals/screens so the phone, producer, and HUD remain independent.
+
+1. In terminal A, safely set the producer-only tokens, then launch:
+
+   ```sh
+   read -rs SIGNALK_TOKEN; export SIGNALK_TOKEN; printf '\n'
+   read -rs SIGNALK_INGRESS_TOKEN; export SIGNALK_INGRESS_TOKEN; printf '\n'
+   make iphone-heel
+   ```
+
+   This sources only the private pairing secret from `.local/`; it never prints that value or the Signal K tokens. The producer runs the temporary phone service on port 8443. Restarting it revokes browser credentials. Pairing expires after 15 minutes, limits failed attempts per source address, and browser credentials expire after 12 hours.
+
+2. Complete certificate trust. In Safari open `https://TELLTALES_SERVER_HOST:8443/`, privately read and enter the pairing value, choose **Enable Motion** after the visible gesture, hold the supported mount level, and press **Zero here** only after fresh sensor input appears. Record the actual source method: `devicemotion gravity` when supplied, otherwise the beta/gamma orientation fallback. Neither is a calibration claim. Subsequent authorised Telltales experiments on the same unchanged host may reuse the trusted TLS identity; each still needs its own pairing/session/permission flow.
+
+3. In terminal B run `make iphone-heel-hud`. On a different screen, open:
+
+   ```text
+   http://127.0.0.1:4173/?view=hud&template=sailing-hud&mode=signalk
+   ```
+
+   If the Signal K deployment requires a stream token, append a short-lived readonly `signalkToken` locally in the browser. Do not paste, save, screenshot, or share that URL: query strings are retained easily. The HUD is presentation-only.
+
+4. Independently inspect Signal K `navigation.attitude.roll`. Telltales maps the phone source to degrees for its HUD and Signal K uses radians; metadata must identify `iphone-browser-motion`, method, calibration state, phone observation time, and server receipt time. A valid value is LIVE only while fresh phone observations continue.
+
+Useful commands:
 
 ```sh
-sh experiments/iphone-heel/certificate.sh MAC_LAN_IP .local/iphone-heel-cert
-IPHONE_HEEL_PAIRING_CODE='a-new-random-16-plus-character-secret' SIGNALK_TOKEN='readwrite-token' SIGNALK_INGRESS_TOKEN='plugin-ingress-token' npm run iphone-heel
+make help                 # repository and iPhone-heel commands
+make iphone-heel-test     # orientation, auth, HTTPS/WSS lifecycle tests
+make iphone-heel-e2e      # disposable Docker Signal K + Chromium test
 ```
 
-On iPhone, visit `https://MAC_LAN_IP:8443/certificate.cer`, install it and enable
-full certificate trust in iOS Settings. Then open `https://MAC_LAN_IP:8443/`, pair,
-choose **Enable Motion**, hold the mount level, and choose **Zero here**. On the
-Mac, separately run `npm start` and open:
+`iphone-heel-e2e` proves the generic Signal K route using synthetic data; it neither starts a physical phone nor proves iPhone motion behaviour.
 
-```text
-http://localhost:4173/?view=hud&template=sailing-hud&mode=signalk&signalkToken=READONLY_OR_READWRITE_TOKEN
+## Exact physical acceptance procedure
+
+Perform this with a human observing the phone and a **different** HUD screen. Fill in [the evidence template](EVIDENCE-TEMPLATE.md), recording pass/fail rather than smoothing failures.
+
+1. Record sanitized device/iOS/Safari versions, trusted-LAN class, mount orientation, Signal K version, source method, and two-screen URLs without secrets. Confirm foreground Safari and trusted HTTPS.
+2. Grant motion permission through **Enable Motion**. Record denied or absent APIs as a failure/limitation; never substitute simulated data. Wait for a current event, level the supported face-up portrait mount, and press **Zero here** within one second. Record `manual-zero` status.
+3. Tilt approximately **10°, 30°, and 60° port**, holding each to compare the separate HUD's signed degrees with `navigation.attitude.roll` radians. Repeat **10°, 30°, and 60° starboard**. Record expected and observed direction, approximate scale, freshness, and pass/fail. Do not claim precision beyond the reference used.
+4. Hold a stationary supported angle beyond the HUD freshness threshold while Safari remains foregrounded. It must remain LIVE because phone events continue; record refresh and source timestamps.
+5. Test: denied/absent permission, invalid/edge-on mount and over-range, Safari background/silence, Wi-Fi interruption, and Wi-Fi reconnection. Each invalid/disconnected/stale condition must become unavailable, and a new valid reading must recover without an old unavailable update overwriting it.
+6. Stop the producer and confirm HUD unavailable, then stop HUD and Signal K. Record all failures and limitations. Automated results, local preview, synthetic injection, and same-screen mirroring are not substitutes for acceptance.
+
+## Troubleshooting and cleanup
+
+| Symptom                               | Check or safe response                                                                                                                               |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| iPhone cannot open page               | Confirm trusted-LAN address/port, Mac firewall, and terminal A. Do not expose Signal K or disable security.                                          |
+| Safari says connection is not private | Reinstall/trust the certificate and confirm it has a SAN for the exact selected LAN host/IP; deliberately rotate it after expiry or identity change. |
+| Pairing fails                         | Check the 15-minute window and privately type the generated secret. Restart producer to reset/revoke rather than guessing repeatedly.                |
+| Enable Motion fails                   | Permission needs the visible gesture and trusted HTTPS. Record denied/absent APIs; do not fake input.                                                |
+| HUD has no heel                       | Check local Signal K/plugin status, token roles, ingress token, and Signal K path. Keep tokens out of diagnostics.                                   |
+| Heel becomes unavailable              | Check foreground state, Wi-Fi, fresh events, supported mount/range, and ingress. This fail-closed result must not be overridden.                     |
+
+After stopping all processes, remove local material only when it is no longer needed:
+
+```sh
+rm -rf .local/certs .local/iphone-heel-pairing.env
 ```
 
-The phone uses paired HTTPS/WSS; its secrets never enter a URL. The pairing secret
-is deliberately a random 16+ character, 15-minute ceremony: five failed attempts
-from an address are rate-limited, browser credentials expire after 12 hours, and a
-producer restart revokes all existing credentials. The existing HUD subscribes to
-`navigation.attitude.roll`, so this is a real Signal K route rather than a mirrored
-preview. One paired phone is accepted; values outside ±85°, socket loss and a
-three-second silent/backgrounded source publish unavailable.
-
-Every phone message includes its own observation time, measurement method and
-manual-zero state. The producer records its receipt time separately in provenance,
-refreshes unchanged valid observations once a second, rejects source timestamps
-outside a small ingress window, and serializes publication so an unavailable update
-cannot be overtaken by an earlier valid update. A failed unavailable publication is
-retried by the watchdog. **LIVE** therefore means a fresh, calibrated, valid phone
-observation, not merely a recent server receipt.
-
-## Implementation slice
-
-`src/iphone-heel-orientation.mjs` is the isolated calibration/measurement kernel.
-The local producer above adapts it to the current authenticated Signal K ingress;
-it does not add an instrument framework or another Signal K path.
-
-Run `npm test` to include the kernel regression checks. This is software-only
-evidence and cannot establish physical acceptance.
-
-## Physical acceptance still required
-
-On the owner's iPhone in foreground Safari, obtain motion permission after a
-gesture on a trusted HTTPS origin. Report which source is actually available:
-motion gravity or orientation fallback. With the supported mounting position,
-wait for the displayed live sensor method, then press Zero within a second of a
-fresh event. Physically tilt left and right at approximately 10°, 30°, 60°. Confirm
-direction and scaling on a **separate** Telltales HUD screen using the current
-authenticated Signal K observation/consumer path; independently inspect
-`navigation.attitude.roll` (radians). Hold a stable angle beyond the HUD freshness
-threshold: it must remain LIVE only while fresh phone observations continue.
-
-Record denied permission, unavailable sensors, invalid mounting, background,
-Wi-Fi interruption/reconnect, and loss/stale state. Neither mirroring, local
-preview, synthetic injection nor automated browser tests complete physical
-acceptance. Keep credentials and identifying traces out of public evidence.
-
-Automated tests cover HTTPS pairing, WSS authentication, steady-reading freshness,
-invalid input, silence, disconnect and reconnection. They are not a substitute for
-the iPhone/Safari physical acceptance above.
+This deletes the reusable local server identity and pairing secret, not independently managed Signal K tokens; revoke those in Signal K if created solely for the run. Do not remove `.local/certs` while another authorised local Telltales experiment uses it. Keep sanitized evidence only. Never publish credentials, certificate keys, vessel identifiers, locations, network addresses, raw traces, screenshots containing tokens, or private physical records.

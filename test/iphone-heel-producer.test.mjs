@@ -9,7 +9,10 @@ import { promisify } from 'node:util';
 import test from 'node:test';
 import WebSocket from 'ws';
 import { createPairing } from '../experiments/iphone-heel/auth.mjs';
-import { createIphoneHeelProducer } from '../experiments/iphone-heel/server.mjs';
+import {
+  createIphoneHeelProducer,
+  createIphoneHeelPublicationQueue,
+} from '../experiments/iphone-heel/server.mjs';
 
 const exec = promisify(execFile);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -156,4 +159,45 @@ test('paired HTTPS/WSS producer retains lifecycle, source time, and ordered inva
   } finally {
     await producer.close();
   }
+});
+
+test('a recovered reading supersedes a failed invalidation, while unresolved invalidation retries', async () => {
+  const published = [];
+  let rejectNextInvalidation = true;
+  const publication = createIphoneHeelPublicationQueue({
+    publishIngress: async (observation) => {
+      if (!observation.valid && rejectNextInvalidation) {
+        rejectNextInvalidation = false;
+        throw Error('controlled ingress failure');
+      }
+      published.push(observation);
+    },
+  });
+  const reading = (value) => ({
+    type: 'heel',
+    value,
+    valid: true,
+    observedAt: new Date().toISOString(),
+    method: 'devicemotion gravity',
+    calibration: 'manual-zero',
+  });
+  await publication.publish(reading(12));
+  await assert.rejects(publication.invalidate('iPhone disconnected or backgrounded'));
+  await publication.publish(reading(-9));
+  await publication.retryPending();
+  assert.deepEqual(
+    published.map((item) => item.value),
+    [12, -9],
+    'a watchdog retry cannot republish the obsolete unavailable state after recovery'
+  );
+
+  rejectNextInvalidation = true;
+  await assert.rejects(publication.invalidate('iPhone reading stale or backgrounded'));
+  await publication.retryPending();
+  assert.match(published.at(-1).reason, /stale/);
+  assert.equal(
+    published.filter((item) => /stale/.test(item.reason || '')).length,
+    1,
+    'the unresolved invalidation retries once in serialized order'
+  );
 });

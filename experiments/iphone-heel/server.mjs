@@ -27,25 +27,16 @@ const validPhoneReading = (message, now) => {
   );
 };
 
-export function createIphoneHeelProducer({
-  tls,
-  pairing,
+export function createIphoneHeelPublicationQueue({
   publishIngress,
-  certificate,
   clock = Date.now,
   heartbeatMs = 1000,
-  staleMs = 3000,
-  pairingAttempts = 5,
-  pairingWindowMs = 15 * 60_000,
 }) {
-  let owner = null;
-  let lastPhoneReadingAt = 0;
   let lastFingerprint = '';
   let lastPublishedAt = 0;
   let pendingInvalidation = null;
   let invalidatedReason = '';
   let chain = Promise.resolve();
-  const attempts = new Map();
   const queue = (work) => {
     const task = chain.then(work, work);
     chain = task.catch(() => {});
@@ -80,14 +71,43 @@ export function createIphoneHeelProducer({
     if (!observation.valid) {
       pendingInvalidation = null;
       invalidatedReason = observation.reason;
-    } else invalidatedReason = '';
+    } else {
+      // A successful newer reading supersedes an unavailable publication that
+      // previously failed. Leaving that intent queued would let the watchdog
+      // clobber this recovered reading with an obsolete unavailable state.
+      pendingInvalidation = null;
+      invalidatedReason = '';
+    }
   };
   const publish = (reading) => queue(() => ingress(reading));
-  const invalidate = (reason) => {
-    if (reason === invalidatedReason) return Promise.resolve();
-    pendingInvalidation = { valid: false, reason, observedAt: nowIso() };
-    return publish(pendingInvalidation);
-  };
+  return Object.freeze({
+    publish,
+    invalidate(reason) {
+      if (reason === invalidatedReason) return Promise.resolve();
+      pendingInvalidation = { valid: false, reason, observedAt: nowIso() };
+      return publish(pendingInvalidation);
+    },
+    retryPending() {
+      return pendingInvalidation ? publish(pendingInvalidation) : Promise.resolve();
+    },
+  });
+}
+
+export function createIphoneHeelProducer({
+  tls,
+  pairing,
+  publishIngress,
+  certificate,
+  clock = Date.now,
+  heartbeatMs = 1000,
+  staleMs = 3000,
+  pairingAttempts = 5,
+  pairingWindowMs = 15 * 60_000,
+}) {
+  let owner = null;
+  let lastPhoneReadingAt = 0;
+  const attempts = new Map();
+  const publication = createIphoneHeelPublicationQueue({ publishIngress, clock, heartbeatMs });
   const server = createServer(tls, async (req, res) => {
     const url = new URL(req.url, 'https://local');
     if (url.pathname === '/auth/pair' && req.method === 'POST') {
@@ -151,7 +171,7 @@ export function createIphoneHeelProducer({
       const now = clock();
       if (owner !== ws || !validPhoneReading(message, now)) return;
       lastPhoneReadingAt = now;
-      publish(message).catch(() => {
+      publication.publish(message).catch(() => {
         if (ws.readyState === ws.OPEN)
           ws.send(JSON.stringify({ type: 'status', text: 'Signal K ingress unavailable' }));
       });
@@ -159,15 +179,15 @@ export function createIphoneHeelProducer({
     ws.on('close', () => {
       if (owner === ws) {
         owner = null;
-        invalidate('iPhone disconnected or backgrounded').catch(() => {});
+        publication.invalidate('iPhone disconnected or backgrounded').catch(() => {});
       }
     });
   });
   const watchdog = setInterval(
     () => {
       if (owner && clock() - lastPhoneReadingAt > staleMs)
-        invalidate('iPhone reading stale or backgrounded').catch(() => {});
-      else if (pendingInvalidation) publish(pendingInvalidation).catch(() => {});
+        publication.invalidate('iPhone reading stale or backgrounded').catch(() => {});
+      else publication.retryPending().catch(() => {});
     },
     Math.min(750, heartbeatMs)
   );
@@ -183,7 +203,9 @@ export function createIphoneHeelProducer({
 }
 
 async function main() {
-  const cert = process.env.IPHONE_HEEL_CERT_DIR || resolve(root, '.local/iphone-heel-cert');
+  // This is the Telltales host's TLS identity, not an iPhone or sensor identity.
+  // It may serve other explicitly authorised local Telltales experiments.
+  const cert = process.env.TELLTALES_SERVER_CERT_DIR || resolve(root, '.local/certs');
   const token = process.env.SIGNALK_TOKEN;
   const ingressToken = process.env.SIGNALK_INGRESS_TOKEN;
   if (!token || !ingressToken)
@@ -197,10 +219,10 @@ async function main() {
     'http://127.0.0.1:3000/plugins/telltales-observations/observations';
   const producer = createIphoneHeelProducer({
     tls: {
-      key: await readFile(`${cert}/iphone-heel.key`),
-      cert: await readFile(`${cert}/iphone-heel.crt`),
+      key: await readFile(`${cert}/telltales-server.key`),
+      cert: await readFile(`${cert}/telltales-server.crt`),
     },
-    certificate: await readFile(`${cert}/iphone-heel.cer`),
+    certificate: await readFile(`${cert}/telltales-server.cer`),
     pairing,
     publishIngress: async (observation) => {
       const response = await fetch(ingress, {
