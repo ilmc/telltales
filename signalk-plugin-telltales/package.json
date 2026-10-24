@@ -1,1 +1,10 @@
-{"name":"signalk-telltales-observations","version":"0.1.0","description":"Local Telltales observation ingress for Signal K","main":"index.js","keywords":["signalk-node-server-plugin","signalk-server-plugin"]}
+{
+  "name": "signalk-telltales-observations",
+  "version": "0.1.0",
+  "description": "Local Telltales observation ingress for Signal K",
+  "main": "index.js",
+  "keywords": [
+    "signalk-node-server-plugin",
+    "signalk-server-plugin"
+  ]
+}

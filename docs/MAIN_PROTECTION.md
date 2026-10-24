@@ -26,9 +26,9 @@ In **Settings → Rules → Rulesets**, create an active branch ruleset targetin
 
 Use an issue-linked branch with a documentation-only edit, and open a PR. The probe should exercise:
 
-1. **PR gate:** attempt (without force or credentials beyond approved scope) a harmless normal direct push to `main` from an appropriately unprivileged identity; it should be rejected. If it is accepted, the probe has failed: stop the exercise and restore the resulting change through a reviewed PR before any further testing. If only an administrator identity is available and it can bypass rules, label the result *not tested* rather than calling it enforced.
+1. **PR gate:** attempt (without force or credentials beyond approved scope) a harmless normal direct push to `main` from an appropriately unprivileged identity; it should be rejected. If it is accepted, the probe has failed: stop the exercise and restore the resulting change through a reviewed PR before any further testing. If only an administrator identity is available and it can bypass rules, label the result _not tested_ rather than calling it enforced.
 2. **CI gate:** leave a check pending or intentionally failing on the probe branch (never sabotage production code or merge the failing change). Verify that GitHub marks merge blocked because the relevant required check has not succeeded.
-3. **Review gate:** verify the PR cannot merge without the configured number of genuine non-author approvals. If the same author account is the only identity available, report this as *not enforceable/testable* rather than self-approving.
+3. **Review gate:** verify the PR cannot merge without the configured number of genuine non-author approvals. If the same author account is the only identity available, report this as _not enforceable/testable_ rather than self-approving.
 4. **Post-push:** add a harmless commit after approval and confirm stale-review behavior if enabled.
 5. **Negative operations:** inspect ruleset restrictions for force-push and deletion; avoid destructive live tests against `main`.
 6. Once checks and review are satisfied, let an authorised maintainer decide whether to merge the harmless probe PR; otherwise close it without merging. Capture GitHub UI evidence or API snapshots.
@@ -43,13 +43,13 @@ An administrator may evaluate CodeRabbit or another reviewer, but installation a
 
 Complete this table only with observed evidence; leave unverified values as **not verified**.
 
-| Control | Evidence to capture | Current finding |
-| --- | --- | --- |
-| PR-only `main` | Active ruleset and rejected non-bypass direct push | Not verified |
-| Required `core` and `browser` | Check names/sources and blocked failing/pending PR | Not verified |
-| Force-push/delete restrictions | Active targeted ruleset | Not verified |
-| Independent approval | Separate reviewer identity, rule and blocked unapproved PR | Not verified |
-| Bypasses | Explicit actor list and observed privilege limits | Not verified |
-| Optional bot | Owner approval and harmless PR trial | Not installed/verified |
+| Control                        | Evidence to capture                                        | Current finding        |
+| ------------------------------ | ---------------------------------------------------------- | ---------------------- |
+| PR-only `main`                 | Active ruleset and rejected non-bypass direct push         | Not verified           |
+| Required `core` and `browser`  | Check names/sources and blocked failing/pending PR         | Not verified           |
+| Force-push/delete restrictions | Active targeted ruleset                                    | Not verified           |
+| Independent approval           | Separate reviewer identity, rule and blocked unapproved PR | Not verified           |
+| Bypasses                       | Explicit actor list and observed privilege limits          | Not verified           |
+| Optional bot                   | Owner approval and harmless PR trial                       | Not installed/verified |
 
 After administrator testing, update this record with dated, attributable findings and align [GOVERNANCE.md](../GOVERNANCE.md) and [CONTRIBUTING.md](../CONTRIBUTING.md) to the **actual** enforcement, not the proposed configuration. Close Issue #4 only when its acceptance criteria are genuinely met, or explicitly document remaining limitations and obtain an authorised disposition.

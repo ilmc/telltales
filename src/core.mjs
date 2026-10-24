@@ -1,35 +1,994 @@
-export const RECORDING_FORMAT='telltales.observation-recording',RECORDING_VERSION=2;
-const n=x=>typeof x==='number'&&Number.isFinite(x),T=x=>typeof x==='string'&&Number.isFinite(Date.parse(x)),O=(c,id)=>c.observations.find(x=>x.id===id),S=(c,id)=>c.sources.find(x=>x.id===id),raw=o=>o&&o.kind!=='derived',range=(o,v)=>o?.unit==='boolean'?typeof v==='boolean':n(v)&&v>=o.minimum&&v<=o.maximum,bind=(s,id)=>s?.observation===id||s?.observations?.includes(id);
-export function validateSpeedWidget(w,c){let o=O(c,w?.inputs?.speed),p=w?.props||{},scale=p.scale||{};if(!w?.id||w.widget!=='speed')throw Error('Widget must declare a unique id and widget "speed"');if(!o||o.unit!=='kn'||o.kind==='derived')throw Error(`Speed widget ${w.id||'(unnamed)'} input "speed" must bind a raw knot observation`);if(!['number','history','combined'].includes(p.mode))throw Error(`Speed widget ${w.id} props.mode must be number, history, or combined`);if(!n(p.historySeconds)||p.historySeconds<1||p.historySeconds>86400)throw Error(`Speed widget ${w.id} props.historySeconds must be 1–86400 seconds`);if(!n(scale.min)||!n(scale.max)||scale.min>=scale.max)throw Error(`Speed widget ${w.id} props.scale requires finite min < max`);if(!n(p.historyOpacity)||p.historyOpacity<0||p.historyOpacity>1)throw Error(`Speed widget ${w.id} props.historyOpacity must be 0–1`);if(p.title!==undefined&&(typeof p.title!=='string'||!p.title.trim()))throw Error(`Speed widget ${w.id} props.title must be a non-empty string`);if(p.showUnits!==undefined&&typeof p.showUnits!=='boolean')throw Error(`Speed widget ${w.id} props.showUnits must be boolean`);if(p.numericPosition!==undefined&&!['center','top-left','top-right','bottom-left','bottom-right'].includes(p.numericPosition))throw Error(`Speed widget ${w.id} props.numericPosition is unsupported`);return w}
-export function validateDepthWidget(w,c){let o=O(c,w?.inputs?.depth),p=w?.props||{},scale=p.scale||{};if(!w?.id||w.widget!=='depth')throw Error('Widget must declare a unique id and widget "depth"');if(!o||o.id!=='environment.depth'||o.unit!=='m'||o.kind==='derived')throw Error(`Depth widget ${w.id||'(unnamed)'} input "depth" must bind environment.depth in metres`);if(!['number','gauge','combined'].includes(p.mode))throw Error(`Depth widget ${w.id} props.mode must be number, gauge, or combined`);if(!n(scale.min)||!n(scale.max)||scale.min>=scale.max)throw Error(`Depth widget ${w.id} props.scale requires finite min < max`);if(p.title!==undefined&&(typeof p.title!=='string'||!p.title.trim()))throw Error(`Depth widget ${w.id} props.title must be a non-empty string`);for(const x of ['showUnits','showReference','showScale'])if(p[x]!==undefined&&typeof p[x]!=='boolean')throw Error(`Depth widget ${w.id} props.${x} must be boolean`);if(p.referenceLabel!==undefined&&(typeof p.referenceLabel!=='string'||!p.referenceLabel.trim()))throw Error(`Depth widget ${w.id} props.referenceLabel must be a non-empty string`);return w}
-export function validateWindWidget(w,c){let s=O(c,w?.inputs?.speed),a=O(c,w?.inputs?.angle),p=w?.props||{};if(!w?.id||w.widget!=='wind')throw Error('Widget must declare a unique id and widget "wind"');if(!s||s.id!=='environment.wind.apparentSpeed'||s.unit!=='kn'||s.kind==='derived')throw Error(`Wind widget ${w.id||'(unnamed)'} input "speed" must bind environment.wind.apparentSpeed`);if(!a||a.id!=='environment.wind.apparentAngle'||a.unit!=='deg'||a.kind==='derived')throw Error(`Wind widget ${w.id||'(unnamed)'} input "angle" must bind environment.wind.apparentAngle`);if(!['number','dial','combined'].includes(p.mode))throw Error(`Wind widget ${w.id} props.mode must be number, dial, or combined`);if(p.title!==undefined&&(typeof p.title!=='string'||!p.title.trim()))throw Error(`Wind widget ${w.id} props.title must be a non-empty string`);for(const x of ['showUnits','showAngle','showPortStarboard'])if(p[x]!==undefined&&typeof p[x]!=='boolean')throw Error(`Wind widget ${w.id} props.${x} must be boolean`);if(p.speedScale!==undefined&&(!n(p.speedScale.min)||!n(p.speedScale.max)||p.speedScale.min>=p.speedScale.max))throw Error(`Wind widget ${w.id} props.speedScale requires finite min < max`);if(p.pointerStyle!==undefined&&!['arrow','needle'].includes(p.pointerStyle))throw Error(`Wind widget ${w.id} props.pointerStyle is unsupported`);if(p.maxSkewMs!==undefined&&(!n(p.maxSkewMs)||p.maxSkewMs<0||p.maxSkewMs>30000))throw Error(`Wind widget ${w.id} props.maxSkewMs must be 0–30000`);return w}
-export function validateHeelWidget(w,c){let o=O(c,w?.inputs?.heel),p=w?.props||{};if(!w?.id||w.widget!=='heel')throw Error('Widget must declare a unique id and widget "heel"');if(!o||o.id!=='vessel.heel'||o.unit!=='deg'||o.kind==='derived')throw Error(`Heel widget ${w.id||'(unnamed)'} input "heel" must bind vessel.heel in degrees`);if(p.title!==undefined&&(typeof p.title!=='string'||!p.title.trim()))throw Error(`Heel widget ${w.id} props.title must be a non-empty string`);return w}
-export function validateSensorReadingWidget(w){let p=w?.props||{};if(!w?.id||w.widget!=='sensor-reading'||typeof p.binding!=='string'||!p.binding||typeof p.title!=='string'||!p.title.trim())throw Error('Sensor-reading widget requires id, binding, and title');return w}
-export function validateSurfaceWidget(w){let p=w?.props||{},size=p.nativeSize||{};if(!w?.id||w.widget!=='surface')throw Error('Widget must declare a unique id and widget "surface"');if(typeof p.channel!=='string'||!p.channel.trim()||p.channel.length>100)throw Error(`Surface widget ${w.id} props.channel must be a short non-empty string`);if(!Number.isInteger(size.width)||!Number.isInteger(size.height)||size.width<1||size.height<1||size.width>8192||size.height>8192)throw Error(`Surface widget ${w.id} props.nativeSize requires integer dimensions up to 8192`);if(!['contain','cover','stretch'].includes(p.fit))throw Error(`Surface widget ${w.id} props.fit must be contain, cover, or stretch`);if(!n(p.maxFrameAgeMs)||p.maxFrameAgeMs<250||p.maxFrameAgeMs>60000)throw Error(`Surface widget ${w.id} props.maxFrameAgeMs must be 250–60000`);if(p.title!==undefined&&(typeof p.title!=='string'||!p.title.trim()))throw Error(`Surface widget ${w.id} props.title must be a non-empty string`);return w}
-export function validateConfiguration(c){if(!c||c.version!==2||!Array.isArray(c.observations)||!Array.isArray(c.sources)||!Array.isArray(c.presentations)||!c.display?.profiles)throw Error('Invalid configuration or unsupported contract');let ids=new Set;for(const o of c.observations){if(!o?.id||ids.has(o.id)||!o.unit||!o.reference||(raw(o)&&(!n(o.minimum)||!n(o.maximum)||o.minimum>=o.maximum)))throw Error('Invalid observation declaration');ids.add(o.id)}let si=new Set;for(const s of c.sources){if(!s?.id||si.has(s.id))throw Error('Duplicate/invalid source ID');si.add(s.id);if(['slider','fixture'].includes(s.type)){let o=O(c,s.observation);if(!raw(o)||(s.type==='slider'&&!range(o,s.initial))||(s.type==='fixture'&&(!s.samples?.length||!s.samples.every(v=>range(o,v)))))throw Error('Invalid source')}else if(['replay','nmea-replay'].includes(s.type)){if(!s.observations?.length||s.observations.some(id=>!raw(O(c,id))))throw Error('Invalid replay source')}else throw Error('Unknown source type')}for(const o of c.observations.filter(raw))if(!bind(S(c,c.defaultSources?.[o.id]),o.id))throw Error('Invalid default source binding');let out=new Set;for(const t of c.transforms||[]){if(t?.type!=='threshold-conjunction'||!O(c,t.output)?.kind||out.has(t.output)||t.inputs?.length!==2||new Set(t.inputs).size!==2||t.inputs.some(id=>!raw(O(c,id)))||t.rules?.length!==2||!n(t.maxInputAgeMs)||!n(t.maxSkewMs))throw Error('Invalid transform dependency');out.add(t.output)}if(c.observations.some(o=>o.kind==='derived'&&!out.has(o.id)))throw Error('Invalid transform dependency');let pi=new Set;for(const p of c.presentations){if(!p?.id||pi.has(p.id)||!O(c,p.observation)||!['numeric','gauge','history','condition'].includes(p.type)||!p.title)throw Error('Invalid presentation');pi.add(p.id)}let wi=new Set;for(const w of c.widgets||[]){if(wi.has(w?.id))throw Error('Duplicate widget ID');wi.add(w.id);if(w.widget==='speed')validateSpeedWidget(w,c);else if(w.widget==='wind')validateWindWidget(w,c);else if(w.widget==='heel')validateHeelWidget(w,c);else if(w.widget==='depth')validateDepthWidget(w,c);else if(w.widget==='sensor-reading')validateSensorReadingWidget(w);else if(w.widget==='surface')validateSurfaceWidget(w);else throw Error('Unknown widget type')}let templates=new Set;for(const t of c.templates||[]){let surface=t?.widgets?.some(x=>c.widgets.find(w=>w.id===x)?.widget==='surface');if(!t?.id||templates.has(t.id)||!Array.isArray(t.widgets)||!t.widgets.every(x=>wi.has(x))||!t.layout?.referenceWidth||!t.layout.referenceHeight||t.layout.referenceWidth<1||t.layout.referenceHeight<1||(surface&&(!t.layout.slots||t.widgets.some(x=>!['port','main','starboard-top','starboard-middle','starboard-bottom'].includes(t.layout.slots[x])))))throw Error('Invalid template');templates.add(t.id)}for(const p of Object.values(c.display.profiles)){let ws=p.widgets||[];if(!p||!['engineering','compact','wide','hud'].includes(p.layout)||typeof p.showControls!=='boolean'||typeof p.showMetadata!=='boolean'||!Array.isArray(p.presentations)||new Set(p.presentations).size!==p.presentations.length||p.presentations.some(x=>!pi.has(x))||!Array.isArray(ws)||new Set(ws).size!==ws.length||ws.some(x=>!wi.has(x))||(p.template&&!templates.has(p.template)))throw Error('Invalid display profile');}if(!c.display.profiles[c.display.defaultProfile])throw Error('Invalid display profile');return c}
-export function validateCapabilities(c){if(!Array.isArray(c.capabilities))throw Error('Missing device capability catalogue');let known=new Set;for(const d of c.capabilities){if(!d?.id||known.has(d.id)||!['simulated','file-replay','live','candidate'].includes(d.mode)||!d.connection||typeof d.implemented!=='boolean'||!Array.isArray(d.observations)||d.observations.some(x=>!O(c,x.id)||O(c,x.id).unit!==x.unit))throw Error(`Invalid device capability ${d?.id||'(unnamed)'}`);known.add(d.id)}for(const s of c.sources)if(s.capability&&!known.has(s.capability))throw Error(`Unknown device capability ${s.capability} for source ${s.id}`);return c}
-const compatible=(o,type)=>!!o&&(type==='condition'?o.kind==='derived':o.kind!=='derived'&&['numeric','gauge','history'].includes(type));
-export const COMPOSITION_FORMAT='telltales.composition',COMPOSITION_VERSION=1;
-export function compositionFromProfile(c,id){let p=c.display.profiles[id],t=c.transforms.find(x=>x.output==='vessel.movingUnderHeel');if(!p||!t)throw Error('Unknown supplied profile');return{format:COMPOSITION_FORMAT,version:COMPOSITION_VERSION,presentations:p.presentations.map(x=>{let q=c.presentations.find(y=>y.id===x);return{id:q.id,observation:q.observation,type:q.type,title:q.title}}),derived:{movingUnderHeel:{heelThreshold:t.rules.find(r=>r.input==='vessel.heel').absoluteAtLeast,sogThreshold:t.rules.find(r=>r.input==='vessel.speedOverGround').atLeast,maxInputAgeMs:t.maxInputAgeMs,maxSkewMs:t.maxSkewMs}}}}
-export function validateComposition(x,c){if(!x||x.format!==COMPOSITION_FORMAT||x.version!==COMPOSITION_VERSION||!Array.isArray(x.presentations)||!x.derived?.movingUnderHeel)throw Error('Invalid or unsupported composition');let ids=new Set;for(const p of x.presentations){let o=O(c,p?.observation);if(!p?.id||ids.has(p.id)||typeof p.title!=='string'||!p.title.trim()||!compatible(o,p.type))throw Error('Unsupported presentation, type, or observation identity');ids.add(p.id)}let d=x.derived.movingUnderHeel;if(!n(d.heelThreshold)||d.heelThreshold<0||d.heelThreshold>90||!n(d.sogThreshold)||d.sogThreshold<0||d.sogThreshold>20||!n(d.maxInputAgeMs)||d.maxInputAgeMs<0||!n(d.maxSkewMs)||d.maxSkewMs<0)throw Error('Invalid derived-condition thresholds');return x}
-export function applyComposition(c,x){validateComposition(x,c);let t=c.transforms.find(t=>t.output==='vessel.movingUnderHeel'),d=x.derived.movingUnderHeel;t.rules=t.rules.map(r=>r.input==='vessel.heel'?{...r,absoluteAtLeast:d.heelThreshold}:r.input==='vessel.speedOverGround'?{...r,atLeast:d.sogThreshold}:r);t.maxInputAgeMs=d.maxInputAgeMs;t.maxSkewMs=d.maxSkewMs;return c}
-export function createObservation(o,sourceId,value,{at=new Date,reason,simulated=true,provenance}={}){let observedAt=at instanceof Date?at.toISOString():at,valid=raw(o)&&range(o,value)&&!!sourceId&&T(observedAt)&&!reason;return Object.freeze({id:o.id,unit:o.unit,value:valid?value:null,observedAt,sourceId,valid,simulated:Boolean(simulated),...(provenance?{provenance}:{}),...(!valid?{reason:reason||'Invalid or missing observation'}:{})})}
-export function acceptable(r,c,now=Date.now(),age=30000){let o=O(c,r?.id),s=S(c,r?.sourceId),external=r?.provenance?.kind==='signalk';if(!raw(o)||(!external&&(!s||!bind(s,o.id)))||r?.unit!==o.unit||typeof r?.simulated!=='boolean'||!r.valid||!range(o,r.value))return{ok:false,reason:'Invalid or unrecognised observation'};if(r.replay)return{ok:true,value:r.value};let t=Date.parse(r.observedAt);return !Number.isFinite(t)||t>now+1000||now-t>age?{ok:false,reason:'Stale or future observation'}:{ok:true,value:r.value}}
-export function createSource(s,o,emit,clock=()=>new Date){const send=(v,r)=>emit(createObservation(o,s.id,v,{at:clock(),reason:r}));if(s.type==='slider'){let value=s.initial,reason,timer;const sample=()=>send(value,reason);return{id:s.id,start(){sample();if(typeof window!=='undefined'&&!timer)timer=setInterval(sample,1000)},set:v=>{value=v;reason=undefined;sample()},invalid:()=>{reason='Sensor reports invalid';sample()},missing:()=>{reason='No observation';sample()}}}let i=0;return{id:s.id,start(){i=0;send(s.samples[0])},next(){i=(i+1)%s.samples.length;send(s.samples[i])},invalid:()=>send(NaN,'Fixture invalid'),missing:()=>send(null,'Fixture missing')}}
-export function createBus(c,id,sink,now=()=>Date.now(),accepted=()=>{}){if(!raw(O(c,id)))throw Error('Unknown raw observation');let active=c.defaultSources[id],latest=null;const clear=()=>{latest=null;sink(null,{ok:false,reason:'Awaiting source observation'})};return{dispatch(r){if(!r||r.id!==id||(r.replay?.sourceId||r.sourceId)!==active)return;latest=r;let st=acceptable(r,c,now());sink(r,st);if(st.ok)accepted(r,st)},select(x){if(!bind(S(c,x),id))throw Error('Unknown source');active=x;clear()},clear,refresh(){sink(latest,acceptable(latest,c,now()))},get activeSource(){return active}}}
-export function createDerivedEngine(c,sink,now=()=>Date.now()){let latest=new Map;const emit=t=>{let a=t.inputs.map(id=>latest.get(id)),bad=!a.every(x=>x?.state.ok),ds=a.map(x=>Date.parse(x?.reading?.observedAt)),reason=bad?'Input missing, invalid or stale':'';if(!reason&&Math.max(...ds)-Math.min(...ds)>t.maxSkewMs)reason='Input observations are not aligned';if(!reason&&!a.some(x=>x.reading.replay)&&ds.some(x=>now()-x>t.maxInputAgeMs))reason='Input observation is stale';let valid=!reason,rules=valid?t.rules.map(q=>{let v=latest.get(q.input).reading.value;return q.absoluteAtLeast!==undefined?Math.abs(v)>=q.absoluteAtLeast:v>=q.atLeast}):[],r={id:t.output,unit:'boolean',value:valid?rules.every(Boolean):null,valid,observedAt:new Date(valid?Math.max(...ds):now()).toISOString(),sourceId:t.id,simulated:a.every(x=>x?.reading?.simulated),provenance:{kind:'derived-condition',transform:t.type,inputs:a.map(x=>x?.reading&&({id:x.reading.id,sourceId:x.reading.sourceId,observedAt:x.reading.observedAt,simulated:x.reading.simulated,...(x.reading.provenance?{provenance:x.reading.provenance}:{})}))},...(!valid?{reason}:{})};sink(Object.freeze(r),{ok:valid,value:r.value})};return{dispatch(r,st){latest.set(r.id,{reading:r,state:st});for(const t of c.transforms||[])if(t.inputs.includes(r.id))emit(t)},reset(){latest.clear();for(const t of c.transforms||[])emit(t)},refresh(){for(const t of c.transforms||[])emit(t)}}}
-function event(r,c){let o=O(c,r?.id);if(!raw(o)||!S(c,r?.sourceId)||!bind(S(c,r.sourceId),o.id)||!T(r.observedAt))return null;return createObservation(o,r.sourceId,r.value,{at:r.observedAt,reason:r.valid?r.reason||undefined:(r.reason||'Invalid or missing observation'),simulated:r.simulated,provenance:r.provenance})}
-export function createRecorder(c,clock=()=>new Date){let es=[];return{record:r=>{let e=event(r,c);if(e)es.push(e)},clear:()=>es.splice(0),get size(){return es.length},export:()=>({format:RECORDING_FORMAT,version:2,createdAt:clock().toISOString(),observations:c.observations.filter(raw).map(o=>({id:o.id,unit:o.unit})),events:[...es]})}}
-export function parseRecording(input,c){let d;try{d=typeof input==='string'?JSON.parse(input):input}catch{throw Error('Recording is not valid JSON')}if(!d||d.format!==RECORDING_FORMAT||!d.events?.length)throw Error('Unsupported or malformed recording');let legacy=d.version===1;if(!legacy&&d.version!==2)throw Error('Unsupported recording version');let declared=legacy?[d.observation]:d.observations;if(!declared?.length)throw Error('Unsupported recording observations');let es=d.events.map((r,i)=>{if(!declared.some(o=>o?.id===r?.id&&o.unit===r?.unit))throw Error(`Malformed recording event ${i+1}`);let x=event(r,c);if(!x)throw Error(`Malformed recording event ${i+1}`);return x});for(let i=1;i<es.length;i++)if(Date.parse(es[i].observedAt)<Date.parse(es[i-1].observedAt))throw Error('Recording events are not chronological');let first=Date.parse(es[0].observedAt);return Object.freeze({events:Object.freeze(es),durationMs:Math.max(0,...es.map(e=>Date.parse(e.observedAt)-first)),version:d.version})}
-export function createReplaySource(s,r,emit,now=()=>Date.now(),restore=()=>{}){let es=r.events,first=Date.parse(es[0].observedAt),pos=0,speed=1,playing=false,started=now(),next=0,off=i=>Date.parse(es[i].observedAt)-first,clamp=x=>Math.max(0,Math.min(r.durationMs,x)),cur=()=>playing?clamp(pos+(now()-started)*speed):pos,send=i=>emit(Object.freeze({...es[i],replay:{sourceId:s.id,effectiveTimeMs:Math.max(0,off(i))}})),reset=x=>{restore();next=0;forward(x)},forward=x=>{while(next<es.length&&off(next)<=x)send(next++)},freeze=()=>{pos=cur();playing=false};return{id:s.id,start(){playing=false;pos=0;started=now();reset(0)},play(){if(!playing){started=now();playing=true}},pause(){if(playing)freeze()},restart(){playing=false;pos=0;started=now();reset(0)},seek(x){pos=clamp(x);started=now();reset(pos)},setSpeed(x){if(![1,2,4].includes(x))throw Error('Unsupported playback speed');if(playing){pos=cur();started=now()}speed=x},tick(){if(!playing)return;let x=cur();forward(x);if(x>=r.durationMs)freeze()},get position(){return cur()},get speed(){return speed},get playing(){return playing},get duration(){return r.durationMs}}}
-function rtime(t,d){if(!/^\d{6}(?:\.\d+)?$/.test(t||'')||!/^\d{6}$/.test(d||''))return null;let x=new Date(Date.UTC(2000+Number(d.slice(4)),Number(d.slice(2,4))-1,Number(d.slice(0,2)),Number(t.slice(0,2)),Number(t.slice(2,4)),Number(t.slice(4))));return Number.isNaN(x)?null:x}function check(l){let m=/^\$([^*]+)\*([\dA-F]{2})\s*$/i.exec(l);if(!m)return false;let x=0;for(const c of m[1])x^=c.charCodeAt(0);return x===parseInt(m[2],16)}
-export function parseNmeaRmc(input,o,{sourceId='nmea-file',synthetic=false}={}){if(typeof input!=='string'||input.length>1048576)throw Error('NMEA input is missing or too large');let es=[],seen=0;for(let z of input.split(/\r?\n/)){let l=z.trim(),m=/^\$([A-Z]{2})RMC,/.exec(l);if(!m)continue;seen++;if(!['GP','GN'].includes(m[1]))continue;let p=l.replace(/^\$/,'').split('*')[0].split(','),at=rtime(p[1],p[9]);if(!at)continue;let why=!check(l)?'NMEA checksum failed':p[2]!=='A'?'NMEA fix is invalid or void':p[7]===''?'NMEA SOG is missing':'',v=Number(p[7]);if(!why&&!range(o,v))why='NMEA SOG is malformed or outside supported range';es.push(createObservation(o,sourceId,why?null:v,{at,reason:why||undefined,simulated:false,provenance:{kind:'nmea-0183-rmc-file',synthetic:Boolean(synthetic)}}))}if(!seen)throw Error('No RMC sentences found');if(!es.length)throw Error('No supported GP/GN RMC sentences with valid timestamps');es.sort((a,b)=>Date.parse(a.observedAt)-Date.parse(b.observedAt));let f=Date.parse(es[0].observedAt);return Object.freeze({events:Object.freeze(es),durationMs:Math.max(0,...es.map(e=>Date.parse(e.observedAt)-f)),format:'nmea-rmc'})}
+export const RECORDING_FORMAT = 'telltales.observation-recording',
+  RECORDING_VERSION = 2;
+const n = (x) => typeof x === 'number' && Number.isFinite(x),
+  T = (x) => typeof x === 'string' && Number.isFinite(Date.parse(x)),
+  O = (c, id) => c.observations.find((x) => x.id === id),
+  S = (c, id) => c.sources.find((x) => x.id === id),
+  raw = (o) => o && o.kind !== 'derived',
+  range = (o, v) =>
+    o?.unit === 'boolean' ? typeof v === 'boolean' : n(v) && v >= o.minimum && v <= o.maximum,
+  bind = (s, id) => s?.observation === id || s?.observations?.includes(id);
+export function validateSpeedWidget(w, c) {
+  let o = O(c, w?.inputs?.speed),
+    p = w?.props || {},
+    scale = p.scale || {};
+  if (!w?.id || w.widget !== 'speed')
+    throw Error('Widget must declare a unique id and widget "speed"');
+  if (!o || o.unit !== 'kn' || o.kind === 'derived')
+    throw Error(
+      `Speed widget ${w.id || '(unnamed)'} input "speed" must bind a raw knot observation`
+    );
+  if (!['number', 'history', 'combined'].includes(p.mode))
+    throw Error(`Speed widget ${w.id} props.mode must be number, history, or combined`);
+  if (!n(p.historySeconds) || p.historySeconds < 1 || p.historySeconds > 86400)
+    throw Error(`Speed widget ${w.id} props.historySeconds must be 1–86400 seconds`);
+  if (!n(scale.min) || !n(scale.max) || scale.min >= scale.max)
+    throw Error(`Speed widget ${w.id} props.scale requires finite min < max`);
+  if (!n(p.historyOpacity) || p.historyOpacity < 0 || p.historyOpacity > 1)
+    throw Error(`Speed widget ${w.id} props.historyOpacity must be 0–1`);
+  if (p.title !== undefined && (typeof p.title !== 'string' || !p.title.trim()))
+    throw Error(`Speed widget ${w.id} props.title must be a non-empty string`);
+  if (p.showUnits !== undefined && typeof p.showUnits !== 'boolean')
+    throw Error(`Speed widget ${w.id} props.showUnits must be boolean`);
+  if (
+    p.numericPosition !== undefined &&
+    !['center', 'top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(p.numericPosition)
+  )
+    throw Error(`Speed widget ${w.id} props.numericPosition is unsupported`);
+  return w;
+}
+export function validateDepthWidget(w, c) {
+  let o = O(c, w?.inputs?.depth),
+    p = w?.props || {},
+    scale = p.scale || {};
+  if (!w?.id || w.widget !== 'depth')
+    throw Error('Widget must declare a unique id and widget "depth"');
+  if (!o || o.id !== 'environment.depth' || o.unit !== 'm' || o.kind === 'derived')
+    throw Error(
+      `Depth widget ${w.id || '(unnamed)'} input "depth" must bind environment.depth in metres`
+    );
+  if (!['number', 'gauge', 'combined'].includes(p.mode))
+    throw Error(`Depth widget ${w.id} props.mode must be number, gauge, or combined`);
+  if (!n(scale.min) || !n(scale.max) || scale.min >= scale.max)
+    throw Error(`Depth widget ${w.id} props.scale requires finite min < max`);
+  if (p.title !== undefined && (typeof p.title !== 'string' || !p.title.trim()))
+    throw Error(`Depth widget ${w.id} props.title must be a non-empty string`);
+  for (const x of ['showUnits', 'showReference', 'showScale'])
+    if (p[x] !== undefined && typeof p[x] !== 'boolean')
+      throw Error(`Depth widget ${w.id} props.${x} must be boolean`);
+  if (
+    p.referenceLabel !== undefined &&
+    (typeof p.referenceLabel !== 'string' || !p.referenceLabel.trim())
+  )
+    throw Error(`Depth widget ${w.id} props.referenceLabel must be a non-empty string`);
+  return w;
+}
+export function validateWindWidget(w, c) {
+  let s = O(c, w?.inputs?.speed),
+    a = O(c, w?.inputs?.angle),
+    p = w?.props || {};
+  if (!w?.id || w.widget !== 'wind')
+    throw Error('Widget must declare a unique id and widget "wind"');
+  if (!s || s.id !== 'environment.wind.apparentSpeed' || s.unit !== 'kn' || s.kind === 'derived')
+    throw Error(
+      `Wind widget ${w.id || '(unnamed)'} input "speed" must bind environment.wind.apparentSpeed`
+    );
+  if (!a || a.id !== 'environment.wind.apparentAngle' || a.unit !== 'deg' || a.kind === 'derived')
+    throw Error(
+      `Wind widget ${w.id || '(unnamed)'} input "angle" must bind environment.wind.apparentAngle`
+    );
+  if (!['number', 'dial', 'combined'].includes(p.mode))
+    throw Error(`Wind widget ${w.id} props.mode must be number, dial, or combined`);
+  if (p.title !== undefined && (typeof p.title !== 'string' || !p.title.trim()))
+    throw Error(`Wind widget ${w.id} props.title must be a non-empty string`);
+  for (const x of ['showUnits', 'showAngle', 'showPortStarboard'])
+    if (p[x] !== undefined && typeof p[x] !== 'boolean')
+      throw Error(`Wind widget ${w.id} props.${x} must be boolean`);
+  if (
+    p.speedScale !== undefined &&
+    (!n(p.speedScale.min) || !n(p.speedScale.max) || p.speedScale.min >= p.speedScale.max)
+  )
+    throw Error(`Wind widget ${w.id} props.speedScale requires finite min < max`);
+  if (p.pointerStyle !== undefined && !['arrow', 'needle'].includes(p.pointerStyle))
+    throw Error(`Wind widget ${w.id} props.pointerStyle is unsupported`);
+  if (p.maxSkewMs !== undefined && (!n(p.maxSkewMs) || p.maxSkewMs < 0 || p.maxSkewMs > 30000))
+    throw Error(`Wind widget ${w.id} props.maxSkewMs must be 0–30000`);
+  return w;
+}
+export function validateHeelWidget(w, c) {
+  let o = O(c, w?.inputs?.heel),
+    p = w?.props || {};
+  if (!w?.id || w.widget !== 'heel')
+    throw Error('Widget must declare a unique id and widget "heel"');
+  if (!o || o.id !== 'vessel.heel' || o.unit !== 'deg' || o.kind === 'derived')
+    throw Error(`Heel widget ${w.id || '(unnamed)'} input "heel" must bind vessel.heel in degrees`);
+  if (p.title !== undefined && (typeof p.title !== 'string' || !p.title.trim()))
+    throw Error(`Heel widget ${w.id} props.title must be a non-empty string`);
+  return w;
+}
+export function validateSensorReadingWidget(w) {
+  let p = w?.props || {};
+  if (
+    !w?.id ||
+    w.widget !== 'sensor-reading' ||
+    typeof p.binding !== 'string' ||
+    !p.binding ||
+    typeof p.title !== 'string' ||
+    !p.title.trim()
+  )
+    throw Error('Sensor-reading widget requires id, binding, and title');
+  return w;
+}
+export function validateSurfaceWidget(w) {
+  let p = w?.props || {},
+    size = p.nativeSize || {};
+  if (!w?.id || w.widget !== 'surface')
+    throw Error('Widget must declare a unique id and widget "surface"');
+  if (typeof p.channel !== 'string' || !p.channel.trim() || p.channel.length > 100)
+    throw Error(`Surface widget ${w.id} props.channel must be a short non-empty string`);
+  if (
+    !Number.isInteger(size.width) ||
+    !Number.isInteger(size.height) ||
+    size.width < 1 ||
+    size.height < 1 ||
+    size.width > 8192 ||
+    size.height > 8192
+  )
+    throw Error(`Surface widget ${w.id} props.nativeSize requires integer dimensions up to 8192`);
+  if (!['contain', 'cover', 'stretch'].includes(p.fit))
+    throw Error(`Surface widget ${w.id} props.fit must be contain, cover, or stretch`);
+  if (!n(p.maxFrameAgeMs) || p.maxFrameAgeMs < 250 || p.maxFrameAgeMs > 60000)
+    throw Error(`Surface widget ${w.id} props.maxFrameAgeMs must be 250–60000`);
+  if (p.title !== undefined && (typeof p.title !== 'string' || !p.title.trim()))
+    throw Error(`Surface widget ${w.id} props.title must be a non-empty string`);
+  return w;
+}
+export function validateConfiguration(c) {
+  if (
+    !c ||
+    c.version !== 2 ||
+    !Array.isArray(c.observations) ||
+    !Array.isArray(c.sources) ||
+    !Array.isArray(c.presentations) ||
+    !c.display?.profiles
+  )
+    throw Error('Invalid configuration or unsupported contract');
+  let ids = new Set();
+  for (const o of c.observations) {
+    if (
+      !o?.id ||
+      ids.has(o.id) ||
+      !o.unit ||
+      !o.reference ||
+      (raw(o) && (!n(o.minimum) || !n(o.maximum) || o.minimum >= o.maximum))
+    )
+      throw Error('Invalid observation declaration');
+    ids.add(o.id);
+  }
+  let si = new Set();
+  for (const s of c.sources) {
+    if (!s?.id || si.has(s.id)) throw Error('Duplicate/invalid source ID');
+    si.add(s.id);
+    if (['slider', 'fixture'].includes(s.type)) {
+      let o = O(c, s.observation);
+      if (
+        !raw(o) ||
+        (s.type === 'slider' && !range(o, s.initial)) ||
+        (s.type === 'fixture' && (!s.samples?.length || !s.samples.every((v) => range(o, v))))
+      )
+        throw Error('Invalid source');
+    } else if (['replay', 'nmea-replay'].includes(s.type)) {
+      if (!s.observations?.length || s.observations.some((id) => !raw(O(c, id))))
+        throw Error('Invalid replay source');
+    } else throw Error('Unknown source type');
+  }
+  for (const o of c.observations.filter(raw))
+    if (!bind(S(c, c.defaultSources?.[o.id]), o.id)) throw Error('Invalid default source binding');
+  let out = new Set();
+  for (const t of c.transforms || []) {
+    if (
+      t?.type !== 'threshold-conjunction' ||
+      !O(c, t.output)?.kind ||
+      out.has(t.output) ||
+      t.inputs?.length !== 2 ||
+      new Set(t.inputs).size !== 2 ||
+      t.inputs.some((id) => !raw(O(c, id))) ||
+      t.rules?.length !== 2 ||
+      !n(t.maxInputAgeMs) ||
+      !n(t.maxSkewMs)
+    )
+      throw Error('Invalid transform dependency');
+    out.add(t.output);
+  }
+  if (c.observations.some((o) => o.kind === 'derived' && !out.has(o.id)))
+    throw Error('Invalid transform dependency');
+  let pi = new Set();
+  for (const p of c.presentations) {
+    if (
+      !p?.id ||
+      pi.has(p.id) ||
+      !O(c, p.observation) ||
+      !['numeric', 'gauge', 'history', 'condition'].includes(p.type) ||
+      !p.title
+    )
+      throw Error('Invalid presentation');
+    pi.add(p.id);
+  }
+  let wi = new Set();
+  for (const w of c.widgets || []) {
+    if (wi.has(w?.id)) throw Error('Duplicate widget ID');
+    wi.add(w.id);
+    if (w.widget === 'speed') validateSpeedWidget(w, c);
+    else if (w.widget === 'wind') validateWindWidget(w, c);
+    else if (w.widget === 'heel') validateHeelWidget(w, c);
+    else if (w.widget === 'depth') validateDepthWidget(w, c);
+    else if (w.widget === 'sensor-reading') validateSensorReadingWidget(w);
+    else if (w.widget === 'surface') validateSurfaceWidget(w);
+    else throw Error('Unknown widget type');
+  }
+  let templates = new Set();
+  for (const t of c.templates || []) {
+    let surface = t?.widgets?.some((x) => c.widgets.find((w) => w.id === x)?.widget === 'surface');
+    if (
+      !t?.id ||
+      templates.has(t.id) ||
+      !Array.isArray(t.widgets) ||
+      !t.widgets.every((x) => wi.has(x)) ||
+      !t.layout?.referenceWidth ||
+      !t.layout.referenceHeight ||
+      t.layout.referenceWidth < 1 ||
+      t.layout.referenceHeight < 1 ||
+      (surface &&
+        (!t.layout.slots ||
+          t.widgets.some(
+            (x) =>
+              !['port', 'main', 'starboard-top', 'starboard-middle', 'starboard-bottom'].includes(
+                t.layout.slots[x]
+              )
+          )))
+    )
+      throw Error('Invalid template');
+    templates.add(t.id);
+  }
+  for (const p of Object.values(c.display.profiles)) {
+    let ws = p.widgets || [];
+    if (
+      !p ||
+      !['engineering', 'compact', 'wide', 'hud'].includes(p.layout) ||
+      typeof p.showControls !== 'boolean' ||
+      typeof p.showMetadata !== 'boolean' ||
+      !Array.isArray(p.presentations) ||
+      new Set(p.presentations).size !== p.presentations.length ||
+      p.presentations.some((x) => !pi.has(x)) ||
+      !Array.isArray(ws) ||
+      new Set(ws).size !== ws.length ||
+      ws.some((x) => !wi.has(x)) ||
+      (p.template && !templates.has(p.template))
+    )
+      throw Error('Invalid display profile');
+  }
+  if (!c.display.profiles[c.display.defaultProfile]) throw Error('Invalid display profile');
+  return c;
+}
+export function validateCapabilities(c) {
+  if (!Array.isArray(c.capabilities)) throw Error('Missing device capability catalogue');
+  let known = new Set();
+  for (const d of c.capabilities) {
+    if (
+      !d?.id ||
+      known.has(d.id) ||
+      !['simulated', 'file-replay', 'live', 'candidate'].includes(d.mode) ||
+      !d.connection ||
+      typeof d.implemented !== 'boolean' ||
+      !Array.isArray(d.observations) ||
+      d.observations.some((x) => !O(c, x.id) || O(c, x.id).unit !== x.unit)
+    )
+      throw Error(`Invalid device capability ${d?.id || '(unnamed)'}`);
+    known.add(d.id);
+  }
+  for (const s of c.sources)
+    if (s.capability && !known.has(s.capability))
+      throw Error(`Unknown device capability ${s.capability} for source ${s.id}`);
+  return c;
+}
+const compatible = (o, type) =>
+  !!o &&
+  (type === 'condition'
+    ? o.kind === 'derived'
+    : o.kind !== 'derived' && ['numeric', 'gauge', 'history'].includes(type));
+export const COMPOSITION_FORMAT = 'telltales.composition',
+  COMPOSITION_VERSION = 1;
+export function compositionFromProfile(c, id) {
+  let p = c.display.profiles[id],
+    t = c.transforms.find((x) => x.output === 'vessel.movingUnderHeel');
+  if (!p || !t) throw Error('Unknown supplied profile');
+  return {
+    format: COMPOSITION_FORMAT,
+    version: COMPOSITION_VERSION,
+    presentations: p.presentations.map((x) => {
+      let q = c.presentations.find((y) => y.id === x);
+      return { id: q.id, observation: q.observation, type: q.type, title: q.title };
+    }),
+    derived: {
+      movingUnderHeel: {
+        heelThreshold: t.rules.find((r) => r.input === 'vessel.heel').absoluteAtLeast,
+        sogThreshold: t.rules.find((r) => r.input === 'vessel.speedOverGround').atLeast,
+        maxInputAgeMs: t.maxInputAgeMs,
+        maxSkewMs: t.maxSkewMs,
+      },
+    },
+  };
+}
+export function validateComposition(x, c) {
+  if (
+    !x ||
+    x.format !== COMPOSITION_FORMAT ||
+    x.version !== COMPOSITION_VERSION ||
+    !Array.isArray(x.presentations) ||
+    !x.derived?.movingUnderHeel
+  )
+    throw Error('Invalid or unsupported composition');
+  let ids = new Set();
+  for (const p of x.presentations) {
+    let o = O(c, p?.observation);
+    if (
+      !p?.id ||
+      ids.has(p.id) ||
+      typeof p.title !== 'string' ||
+      !p.title.trim() ||
+      !compatible(o, p.type)
+    )
+      throw Error('Unsupported presentation, type, or observation identity');
+    ids.add(p.id);
+  }
+  let d = x.derived.movingUnderHeel;
+  if (
+    !n(d.heelThreshold) ||
+    d.heelThreshold < 0 ||
+    d.heelThreshold > 90 ||
+    !n(d.sogThreshold) ||
+    d.sogThreshold < 0 ||
+    d.sogThreshold > 20 ||
+    !n(d.maxInputAgeMs) ||
+    d.maxInputAgeMs < 0 ||
+    !n(d.maxSkewMs) ||
+    d.maxSkewMs < 0
+  )
+    throw Error('Invalid derived-condition thresholds');
+  return x;
+}
+export function applyComposition(c, x) {
+  validateComposition(x, c);
+  let t = c.transforms.find((t) => t.output === 'vessel.movingUnderHeel'),
+    d = x.derived.movingUnderHeel;
+  t.rules = t.rules.map((r) =>
+    r.input === 'vessel.heel'
+      ? { ...r, absoluteAtLeast: d.heelThreshold }
+      : r.input === 'vessel.speedOverGround'
+        ? { ...r, atLeast: d.sogThreshold }
+        : r
+  );
+  t.maxInputAgeMs = d.maxInputAgeMs;
+  t.maxSkewMs = d.maxSkewMs;
+  return c;
+}
+export function createObservation(
+  o,
+  sourceId,
+  value,
+  { at = new Date(), reason, simulated = true, provenance } = {}
+) {
+  let observedAt = at instanceof Date ? at.toISOString() : at,
+    valid = raw(o) && range(o, value) && !!sourceId && T(observedAt) && !reason;
+  return Object.freeze({
+    id: o.id,
+    unit: o.unit,
+    value: valid ? value : null,
+    observedAt,
+    sourceId,
+    valid,
+    simulated: Boolean(simulated),
+    ...(provenance ? { provenance } : {}),
+    ...(!valid ? { reason: reason || 'Invalid or missing observation' } : {}),
+  });
+}
+export function acceptable(r, c, now = Date.now(), age = 30000) {
+  let o = O(c, r?.id),
+    s = S(c, r?.sourceId),
+    external = r?.provenance?.kind === 'signalk';
+  if (
+    !raw(o) ||
+    (!external && (!s || !bind(s, o.id))) ||
+    r?.unit !== o.unit ||
+    typeof r?.simulated !== 'boolean' ||
+    !r.valid ||
+    !range(o, r.value)
+  )
+    return { ok: false, reason: 'Invalid or unrecognised observation' };
+  if (r.replay) return { ok: true, value: r.value };
+  let t = Date.parse(r.observedAt);
+  return !Number.isFinite(t) || t > now + 1000 || now - t > age
+    ? { ok: false, reason: 'Stale or future observation' }
+    : { ok: true, value: r.value };
+}
+export function createSource(s, o, emit, clock = () => new Date()) {
+  const send = (v, r) => emit(createObservation(o, s.id, v, { at: clock(), reason: r }));
+  if (s.type === 'slider') {
+    let value = s.initial,
+      reason,
+      timer;
+    const sample = () => send(value, reason);
+    return {
+      id: s.id,
+      start() {
+        sample();
+        if (typeof window !== 'undefined' && !timer) timer = setInterval(sample, 1000);
+      },
+      set: (v) => {
+        value = v;
+        reason = undefined;
+        sample();
+      },
+      invalid: () => {
+        reason = 'Sensor reports invalid';
+        sample();
+      },
+      missing: () => {
+        reason = 'No observation';
+        sample();
+      },
+    };
+  }
+  let i = 0;
+  return {
+    id: s.id,
+    start() {
+      i = 0;
+      send(s.samples[0]);
+    },
+    next() {
+      i = (i + 1) % s.samples.length;
+      send(s.samples[i]);
+    },
+    invalid: () => send(NaN, 'Fixture invalid'),
+    missing: () => send(null, 'Fixture missing'),
+  };
+}
+export function createBus(c, id, sink, now = () => Date.now(), accepted = () => {}) {
+  if (!raw(O(c, id))) throw Error('Unknown raw observation');
+  let active = c.defaultSources[id],
+    latest = null;
+  const clear = () => {
+    latest = null;
+    sink(null, { ok: false, reason: 'Awaiting source observation' });
+  };
+  return {
+    dispatch(r) {
+      if (!r || r.id !== id || (r.replay?.sourceId || r.sourceId) !== active) return;
+      latest = r;
+      let st = acceptable(r, c, now());
+      sink(r, st);
+      if (st.ok) accepted(r, st);
+    },
+    select(x) {
+      if (!bind(S(c, x), id)) throw Error('Unknown source');
+      active = x;
+      clear();
+    },
+    clear,
+    refresh() {
+      sink(latest, acceptable(latest, c, now()));
+    },
+    get activeSource() {
+      return active;
+    },
+  };
+}
+export function createDerivedEngine(c, sink, now = () => Date.now()) {
+  let latest = new Map();
+  const emit = (t) => {
+    let a = t.inputs.map((id) => latest.get(id)),
+      bad = !a.every((x) => x?.state.ok),
+      ds = a.map((x) => Date.parse(x?.reading?.observedAt)),
+      reason = bad ? 'Input missing, invalid or stale' : '';
+    if (!reason && Math.max(...ds) - Math.min(...ds) > t.maxSkewMs)
+      reason = 'Input observations are not aligned';
+    if (!reason && !a.some((x) => x.reading.replay) && ds.some((x) => now() - x > t.maxInputAgeMs))
+      reason = 'Input observation is stale';
+    let valid = !reason,
+      rules = valid
+        ? t.rules.map((q) => {
+            let v = latest.get(q.input).reading.value;
+            return q.absoluteAtLeast !== undefined
+              ? Math.abs(v) >= q.absoluteAtLeast
+              : v >= q.atLeast;
+          })
+        : [],
+      r = {
+        id: t.output,
+        unit: 'boolean',
+        value: valid ? rules.every(Boolean) : null,
+        valid,
+        observedAt: new Date(valid ? Math.max(...ds) : now()).toISOString(),
+        sourceId: t.id,
+        simulated: a.every((x) => x?.reading?.simulated),
+        provenance: {
+          kind: 'derived-condition',
+          transform: t.type,
+          inputs: a.map(
+            (x) =>
+              x?.reading && {
+                id: x.reading.id,
+                sourceId: x.reading.sourceId,
+                observedAt: x.reading.observedAt,
+                simulated: x.reading.simulated,
+                ...(x.reading.provenance ? { provenance: x.reading.provenance } : {}),
+              }
+          ),
+        },
+        ...(!valid ? { reason } : {}),
+      };
+    sink(Object.freeze(r), { ok: valid, value: r.value });
+  };
+  return {
+    dispatch(r, st) {
+      latest.set(r.id, { reading: r, state: st });
+      for (const t of c.transforms || []) if (t.inputs.includes(r.id)) emit(t);
+    },
+    reset() {
+      latest.clear();
+      for (const t of c.transforms || []) emit(t);
+    },
+    refresh() {
+      for (const t of c.transforms || []) emit(t);
+    },
+  };
+}
+function event(r, c) {
+  let o = O(c, r?.id);
+  if (!raw(o) || !S(c, r?.sourceId) || !bind(S(c, r.sourceId), o.id) || !T(r.observedAt))
+    return null;
+  return createObservation(o, r.sourceId, r.value, {
+    at: r.observedAt,
+    reason: r.valid ? r.reason || undefined : r.reason || 'Invalid or missing observation',
+    simulated: r.simulated,
+    provenance: r.provenance,
+  });
+}
+export function createRecorder(c, clock = () => new Date()) {
+  let es = [];
+  return {
+    record: (r) => {
+      let e = event(r, c);
+      if (e) es.push(e);
+    },
+    clear: () => es.splice(0),
+    get size() {
+      return es.length;
+    },
+    export: () => ({
+      format: RECORDING_FORMAT,
+      version: 2,
+      createdAt: clock().toISOString(),
+      observations: c.observations.filter(raw).map((o) => ({ id: o.id, unit: o.unit })),
+      events: [...es],
+    }),
+  };
+}
+export function parseRecording(input, c) {
+  let d;
+  try {
+    d = typeof input === 'string' ? JSON.parse(input) : input;
+  } catch {
+    throw Error('Recording is not valid JSON');
+  }
+  if (!d || d.format !== RECORDING_FORMAT || !d.events?.length)
+    throw Error('Unsupported or malformed recording');
+  let legacy = d.version === 1;
+  if (!legacy && d.version !== 2) throw Error('Unsupported recording version');
+  let declared = legacy ? [d.observation] : d.observations;
+  if (!declared?.length) throw Error('Unsupported recording observations');
+  let es = d.events.map((r, i) => {
+    if (!declared.some((o) => o?.id === r?.id && o.unit === r?.unit))
+      throw Error(`Malformed recording event ${i + 1}`);
+    let x = event(r, c);
+    if (!x) throw Error(`Malformed recording event ${i + 1}`);
+    return x;
+  });
+  for (let i = 1; i < es.length; i++)
+    if (Date.parse(es[i].observedAt) < Date.parse(es[i - 1].observedAt))
+      throw Error('Recording events are not chronological');
+  let first = Date.parse(es[0].observedAt);
+  return Object.freeze({
+    events: Object.freeze(es),
+    durationMs: Math.max(0, ...es.map((e) => Date.parse(e.observedAt) - first)),
+    version: d.version,
+  });
+}
+export function createReplaySource(s, r, emit, now = () => Date.now(), restore = () => {}) {
+  let es = r.events,
+    first = Date.parse(es[0].observedAt),
+    pos = 0,
+    speed = 1,
+    playing = false,
+    started = now(),
+    next = 0,
+    off = (i) => Date.parse(es[i].observedAt) - first,
+    clamp = (x) => Math.max(0, Math.min(r.durationMs, x)),
+    cur = () => (playing ? clamp(pos + (now() - started) * speed) : pos),
+    send = (i) =>
+      emit(
+        Object.freeze({
+          ...es[i],
+          replay: { sourceId: s.id, effectiveTimeMs: Math.max(0, off(i)) },
+        })
+      ),
+    reset = (x) => {
+      restore();
+      next = 0;
+      forward(x);
+    },
+    forward = (x) => {
+      while (next < es.length && off(next) <= x) send(next++);
+    },
+    freeze = () => {
+      pos = cur();
+      playing = false;
+    };
+  return {
+    id: s.id,
+    start() {
+      playing = false;
+      pos = 0;
+      started = now();
+      reset(0);
+    },
+    play() {
+      if (!playing) {
+        started = now();
+        playing = true;
+      }
+    },
+    pause() {
+      if (playing) freeze();
+    },
+    restart() {
+      playing = false;
+      pos = 0;
+      started = now();
+      reset(0);
+    },
+    seek(x) {
+      pos = clamp(x);
+      started = now();
+      reset(pos);
+    },
+    setSpeed(x) {
+      if (![1, 2, 4].includes(x)) throw Error('Unsupported playback speed');
+      if (playing) {
+        pos = cur();
+        started = now();
+      }
+      speed = x;
+    },
+    tick() {
+      if (!playing) return;
+      let x = cur();
+      forward(x);
+      if (x >= r.durationMs) freeze();
+    },
+    get position() {
+      return cur();
+    },
+    get speed() {
+      return speed;
+    },
+    get playing() {
+      return playing;
+    },
+    get duration() {
+      return r.durationMs;
+    },
+  };
+}
+function rtime(t, d) {
+  if (!/^\d{6}(?:\.\d+)?$/.test(t || '') || !/^\d{6}$/.test(d || '')) return null;
+  let x = new Date(
+    Date.UTC(
+      2000 + Number(d.slice(4)),
+      Number(d.slice(2, 4)) - 1,
+      Number(d.slice(0, 2)),
+      Number(t.slice(0, 2)),
+      Number(t.slice(2, 4)),
+      Number(t.slice(4))
+    )
+  );
+  return Number.isNaN(x) ? null : x;
+}
+function check(l) {
+  let m = /^\$([^*]+)\*([\dA-F]{2})\s*$/i.exec(l);
+  if (!m) return false;
+  let x = 0;
+  for (const c of m[1]) x ^= c.charCodeAt(0);
+  return x === parseInt(m[2], 16);
+}
+export function parseNmeaRmc(input, o, { sourceId = 'nmea-file', synthetic = false } = {}) {
+  if (typeof input !== 'string' || input.length > 1048576)
+    throw Error('NMEA input is missing or too large');
+  let es = [],
+    seen = 0;
+  for (let z of input.split(/\r?\n/)) {
+    let l = z.trim(),
+      m = /^\$([A-Z]{2})RMC,/.exec(l);
+    if (!m) continue;
+    seen++;
+    if (!['GP', 'GN'].includes(m[1])) continue;
+    let p = l.replace(/^\$/, '').split('*')[0].split(','),
+      at = rtime(p[1], p[9]);
+    if (!at) continue;
+    let why = !check(l)
+        ? 'NMEA checksum failed'
+        : p[2] !== 'A'
+          ? 'NMEA fix is invalid or void'
+          : p[7] === ''
+            ? 'NMEA SOG is missing'
+            : '',
+      v = Number(p[7]);
+    if (!why && !range(o, v)) why = 'NMEA SOG is malformed or outside supported range';
+    es.push(
+      createObservation(o, sourceId, why ? null : v, {
+        at,
+        reason: why || undefined,
+        simulated: false,
+        provenance: { kind: 'nmea-0183-rmc-file', synthetic: Boolean(synthetic) },
+      })
+    );
+  }
+  if (!seen) throw Error('No RMC sentences found');
+  if (!es.length) throw Error('No supported GP/GN RMC sentences with valid timestamps');
+  es.sort((a, b) => Date.parse(a.observedAt) - Date.parse(b.observedAt));
+  let f = Date.parse(es[0].observedAt);
+  return Object.freeze({
+    events: Object.freeze(es),
+    durationMs: Math.max(0, ...es.map((e) => Date.parse(e.observedAt) - f)),
+    format: 'nmea-rmc',
+  });
+}
 // MWV has no date/time.  A recorded file must therefore use `ISO-8601 | $--MWV...`
 // envelopes; this keeps replay time separate from any unrecorded sensor time.
-export function parseNmeaMwv(input,speed,angle,{sourceId='nmea-mwv-file',synthetic=false}={}){if(typeof input!=='string'||input.length>1048576)throw Error('NMEA MWV input is missing or too large');let es=[],seen=0;for(const z of input.split(/\r?\n/)){let m=/^\s*(\d{4}-\d\d-\d\dT[^|]+Z)\s*\|\s*(\$[\s\S]+?)\s*$/.exec(z);if(!m)continue;let at=new Date(m[1]),l=m[2],head=/^\$([A-Z]{2})MWV,/.exec(l);if(!head)continue;seen++;let p=l.slice(1).split('*')[0].split(','),a=Number(p[1]),v=Number(p[3]),u=p[4],why=!Number.isFinite(at.getTime())?'MWV timestamp envelope is invalid':!check(l)?'NMEA checksum failed':p[2]!=='R'?'MWV true wind is not apparent wind':p[5]!=='A'?'MWV data status is invalid':!Number.isFinite(a)||a<0||a>360?'MWV angle is malformed':!Number.isFinite(v)?'MWV speed is missing or malformed':!['N','M','K'].includes(u)?'MWV speed unit is unsupported':'';let knots=u==='N'?v:u==='M'?v*3600/1852:u==='K'?v/1.852:null;if(!why&&!range(speed,knots))why='MWV wind speed is outside supported range';let relative=a===180?180:a>180?a-360:a;let provenance={kind:'nmea-0183-mwv-file',synthetic:Boolean(synthetic),timing:'recorded-envelope',originalObservationTime:at.toISOString(),reference:'relative-apparent'};es.push(createObservation(speed,sourceId,why?null:knots,{at,reason:why||undefined,simulated:false,provenance}),createObservation(angle,sourceId,why?null:relative,{at,reason:why||undefined,simulated:false,provenance}))}if(!seen)throw Error('No timestamped MWV sentences found; MWV needs ISO-8601 | sentence envelopes because MWV has no timestamp');es.sort((a,b)=>Date.parse(a.observedAt)-Date.parse(b.observedAt));let first=Date.parse(es[0].observedAt);return Object.freeze({events:Object.freeze(es),durationMs:Math.max(0,...es.map(e=>Date.parse(e.observedAt)-first)),format:'nmea-mwv',timing:'recorded-envelope'})}
-export const TRANSPORT_VERSION=1,TRANSPORT_CHANNEL='telltales.observations.v1';
-export const SURFACE_VERSION=1;
-export function createSurfaceState({maxFrameAgeMs,now=()=>Date.now(),sink=()=>{}}){let publisher=null,frame=null,lastSeen=0,reason='Awaiting frame';const emit=(ok,why=reason)=>sink({ok,reason:why,frame:ok?frame:null,publisherId:publisher}),frameValid=m=>typeof m?.src==='string'&&m.src.length>0&&m.src.length<=4096&&T(m.observedAt),envelopeValid=m=>m&&m.version===SURFACE_VERSION&&['frame','reset','shutdown'].includes(m.type)&&typeof m.publisherId==='string'&&m.publisherId&&T(m.sentAt),unavailable=why=>{frame=null;reason=why;emit(false)};return{receive(m){let active=publisher&&m?.publisherId===publisher;if(publisher&&m?.publisherId!==publisher)return false;if(!envelopeValid(m)){if(active&&m?.type==='frame')unavailable('Invalid frame from active publisher');return false}if(m.type==='frame'&&!frameValid(m)){if(active)unavailable('Invalid frame from active publisher');return false}if(m.type==='frame'&&now()-Date.parse(m.sentAt)>maxFrameAgeMs){if(active)unavailable('Frame source unavailable (stale frame)');else{reason='Frame source unavailable (stale frame)';emit(false)}return false}publisher=m.publisherId;lastSeen=now();if(m.type==='frame'){frame={src:m.src,observedAt:m.observedAt,frameId:typeof m.frameId==='string'?m.frameId:''};reason='';emit(true)}else{unavailable(m.type==='reset'?'Producer reset / seek':'Producer shutdown');if(m.type==='shutdown')publisher=null}return true},refresh(){if(publisher&&now()-lastSeen>maxFrameAgeMs){publisher=null;unavailable('Frame source unavailable (timeout)')}else if(frame)emit(true);else emit(false)},imageFailed(){unavailable('Frame image could not be loaded')},get publisherId(){return publisher}}}
-const transportTypes=new Set(['observation','snapshot-request','snapshot','heartbeat','shutdown']);
-export function validateTransportMessage(m,c){if(!m||m.version!==TRANSPORT_VERSION||!transportTypes.has(m.type)||typeof m.publisherId!=='string'||!m.publisherId||!T(m.sentAt))return null;let restore=x=>{let e=event(x,c);return e&&x.replay?.sourceId?Object.freeze({...e,replay:{sourceId:x.replay.sourceId,effectiveTimeMs:Number(x.replay.effectiveTimeMs)||0}}):e};if(m.type==='observation'){let e=restore(m.observation);return e?{...m,observation:e}:null}if(m.type==='snapshot'){if(!Array.isArray(m.observations)||m.observations.some(x=>!restore(x)))return null;return{...m,observations:m.observations.map(restore)}}if(m.type==='snapshot-request'&&typeof m.subscriberId!=='string')return null;return m}
-export function createTransportState(c,sink,now=()=>Date.now(),timeoutMs=4000){let publisher=null,lastSeen=0,latest=new Map,seen=new Map;const unavailable=reason=>{for(const o of c.observations.filter(raw))sink(o.id,null,{ok:false,reason})};const apply=r=>{let t=Date.parse(r.observedAt),old=seen.get(r.id);if(!r.replay&&old!==undefined&&!old.replay&&t<old.t)return false;seen.set(r.id,{t,replay:Boolean(r.replay)});latest.set(r.id,r);sink(r.id,r,acceptable(r,c,now()));return true};return{receiveObservation:apply,unavailable,receive(message){let m=validateTransportMessage(message,c);if(!m)return false;if(publisher&&m.publisherId!==publisher)return false;publisher=m.publisherId;lastSeen=now();if(m.type==='observation')apply(m.observation);if(m.type==='snapshot')m.observations.forEach(apply);if(m.type==='shutdown'){unavailable('Publisher shutdown');publisher=null}return true},refresh(){if(publisher&&now()-lastSeen>timeoutMs){unavailable('Simulator unavailable (publisher timeout)');publisher=null}else for(const r of latest.values())sink(r.id,r,acceptable(r,c,now()))},snapshot:()=>[...latest.values()],get publisherId(){return publisher}}}
+export function parseNmeaMwv(
+  input,
+  speed,
+  angle,
+  { sourceId = 'nmea-mwv-file', synthetic = false } = {}
+) {
+  if (typeof input !== 'string' || input.length > 1048576)
+    throw Error('NMEA MWV input is missing or too large');
+  let es = [],
+    seen = 0;
+  for (const z of input.split(/\r?\n/)) {
+    let m = /^\s*(\d{4}-\d\d-\d\dT[^|]+Z)\s*\|\s*(\$[\s\S]+?)\s*$/.exec(z);
+    if (!m) continue;
+    let at = new Date(m[1]),
+      l = m[2],
+      head = /^\$([A-Z]{2})MWV,/.exec(l);
+    if (!head) continue;
+    seen++;
+    let p = l.slice(1).split('*')[0].split(','),
+      a = Number(p[1]),
+      v = Number(p[3]),
+      u = p[4],
+      why = !Number.isFinite(at.getTime())
+        ? 'MWV timestamp envelope is invalid'
+        : !check(l)
+          ? 'NMEA checksum failed'
+          : p[2] !== 'R'
+            ? 'MWV true wind is not apparent wind'
+            : p[5] !== 'A'
+              ? 'MWV data status is invalid'
+              : !Number.isFinite(a) || a < 0 || a > 360
+                ? 'MWV angle is malformed'
+                : !Number.isFinite(v)
+                  ? 'MWV speed is missing or malformed'
+                  : !['N', 'M', 'K'].includes(u)
+                    ? 'MWV speed unit is unsupported'
+                    : '';
+    let knots = u === 'N' ? v : u === 'M' ? (v * 3600) / 1852 : u === 'K' ? v / 1.852 : null;
+    if (!why && !range(speed, knots)) why = 'MWV wind speed is outside supported range';
+    let relative = a === 180 ? 180 : a > 180 ? a - 360 : a;
+    let provenance = {
+      kind: 'nmea-0183-mwv-file',
+      synthetic: Boolean(synthetic),
+      timing: 'recorded-envelope',
+      originalObservationTime: at.toISOString(),
+      reference: 'relative-apparent',
+    };
+    es.push(
+      createObservation(speed, sourceId, why ? null : knots, {
+        at,
+        reason: why || undefined,
+        simulated: false,
+        provenance,
+      }),
+      createObservation(angle, sourceId, why ? null : relative, {
+        at,
+        reason: why || undefined,
+        simulated: false,
+        provenance,
+      })
+    );
+  }
+  if (!seen)
+    throw Error(
+      'No timestamped MWV sentences found; MWV needs ISO-8601 | sentence envelopes because MWV has no timestamp'
+    );
+  es.sort((a, b) => Date.parse(a.observedAt) - Date.parse(b.observedAt));
+  let first = Date.parse(es[0].observedAt);
+  return Object.freeze({
+    events: Object.freeze(es),
+    durationMs: Math.max(0, ...es.map((e) => Date.parse(e.observedAt) - first)),
+    format: 'nmea-mwv',
+    timing: 'recorded-envelope',
+  });
+}
+export const TRANSPORT_VERSION = 1,
+  TRANSPORT_CHANNEL = 'telltales.observations.v1';
+export const SURFACE_VERSION = 1;
+export function createSurfaceState({ maxFrameAgeMs, now = () => Date.now(), sink = () => {} }) {
+  let publisher = null,
+    frame = null,
+    lastSeen = 0,
+    reason = 'Awaiting frame';
+  const emit = (ok, why = reason) =>
+      sink({ ok, reason: why, frame: ok ? frame : null, publisherId: publisher }),
+    frameValid = (m) =>
+      typeof m?.src === 'string' && m.src.length > 0 && m.src.length <= 4096 && T(m.observedAt),
+    envelopeValid = (m) =>
+      m &&
+      m.version === SURFACE_VERSION &&
+      ['frame', 'reset', 'shutdown'].includes(m.type) &&
+      typeof m.publisherId === 'string' &&
+      m.publisherId &&
+      T(m.sentAt),
+    unavailable = (why) => {
+      frame = null;
+      reason = why;
+      emit(false);
+    };
+  return {
+    receive(m) {
+      let active = publisher && m?.publisherId === publisher;
+      if (publisher && m?.publisherId !== publisher) return false;
+      if (!envelopeValid(m)) {
+        if (active && m?.type === 'frame') unavailable('Invalid frame from active publisher');
+        return false;
+      }
+      if (m.type === 'frame' && !frameValid(m)) {
+        if (active) unavailable('Invalid frame from active publisher');
+        return false;
+      }
+      if (m.type === 'frame' && now() - Date.parse(m.sentAt) > maxFrameAgeMs) {
+        if (active) unavailable('Frame source unavailable (stale frame)');
+        else {
+          reason = 'Frame source unavailable (stale frame)';
+          emit(false);
+        }
+        return false;
+      }
+      publisher = m.publisherId;
+      lastSeen = now();
+      if (m.type === 'frame') {
+        frame = {
+          src: m.src,
+          observedAt: m.observedAt,
+          frameId: typeof m.frameId === 'string' ? m.frameId : '',
+        };
+        reason = '';
+        emit(true);
+      } else {
+        unavailable(m.type === 'reset' ? 'Producer reset / seek' : 'Producer shutdown');
+        if (m.type === 'shutdown') publisher = null;
+      }
+      return true;
+    },
+    refresh() {
+      if (publisher && now() - lastSeen > maxFrameAgeMs) {
+        publisher = null;
+        unavailable('Frame source unavailable (timeout)');
+      } else if (frame) emit(true);
+      else emit(false);
+    },
+    imageFailed() {
+      unavailable('Frame image could not be loaded');
+    },
+    get publisherId() {
+      return publisher;
+    },
+  };
+}
+const transportTypes = new Set([
+  'observation',
+  'snapshot-request',
+  'snapshot',
+  'heartbeat',
+  'shutdown',
+]);
+export function validateTransportMessage(m, c) {
+  if (
+    !m ||
+    m.version !== TRANSPORT_VERSION ||
+    !transportTypes.has(m.type) ||
+    typeof m.publisherId !== 'string' ||
+    !m.publisherId ||
+    !T(m.sentAt)
+  )
+    return null;
+  let restore = (x) => {
+    let e = event(x, c);
+    return e && x.replay?.sourceId
+      ? Object.freeze({
+          ...e,
+          replay: {
+            sourceId: x.replay.sourceId,
+            effectiveTimeMs: Number(x.replay.effectiveTimeMs) || 0,
+          },
+        })
+      : e;
+  };
+  if (m.type === 'observation') {
+    let e = restore(m.observation);
+    return e ? { ...m, observation: e } : null;
+  }
+  if (m.type === 'snapshot') {
+    if (!Array.isArray(m.observations) || m.observations.some((x) => !restore(x))) return null;
+    return { ...m, observations: m.observations.map(restore) };
+  }
+  if (m.type === 'snapshot-request' && typeof m.subscriberId !== 'string') return null;
+  return m;
+}
+export function createTransportState(c, sink, now = () => Date.now(), timeoutMs = 4000) {
+  let publisher = null,
+    lastSeen = 0,
+    latest = new Map(),
+    seen = new Map();
+  const unavailable = (reason) => {
+    for (const o of c.observations.filter(raw)) sink(o.id, null, { ok: false, reason });
+  };
+  const apply = (r) => {
+    let t = Date.parse(r.observedAt),
+      old = seen.get(r.id);
+    if (!r.replay && old !== undefined && !old.replay && t < old.t) return false;
+    seen.set(r.id, { t, replay: Boolean(r.replay) });
+    latest.set(r.id, r);
+    sink(r.id, r, acceptable(r, c, now()));
+    return true;
+  };
+  return {
+    receiveObservation: apply,
+    unavailable,
+    receive(message) {
+      let m = validateTransportMessage(message, c);
+      if (!m) return false;
+      if (publisher && m.publisherId !== publisher) return false;
+      publisher = m.publisherId;
+      lastSeen = now();
+      if (m.type === 'observation') apply(m.observation);
+      if (m.type === 'snapshot') m.observations.forEach(apply);
+      if (m.type === 'shutdown') {
+        unavailable('Publisher shutdown');
+        publisher = null;
+      }
+      return true;
+    },
+    refresh() {
+      if (publisher && now() - lastSeen > timeoutMs) {
+        unavailable('Simulator unavailable (publisher timeout)');
+        publisher = null;
+      } else for (const r of latest.values()) sink(r.id, r, acceptable(r, c, now()));
+    },
+    snapshot: () => [...latest.values()],
+    get publisherId() {
+      return publisher;
+    },
+  };
+}
