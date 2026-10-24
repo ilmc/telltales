@@ -274,7 +274,7 @@ try {
           method: 'DELETE',
         });
         if (![200, 204, 404].includes(removal.status))
-          throw Error(`remove ${username}: HTTP ${removal.status} ${removal.text}`);
+          cleanupErrors.push(Error(`remove ${username}: HTTP ${removal.status} ${removal.text}`));
       } catch (error) {
         cleanupErrors.push(error);
       }
