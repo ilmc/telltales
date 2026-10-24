@@ -16,7 +16,7 @@ function setup() {
 test('Signal K readwrite authorization and the plugin ingress token are separate', () => {
   const fixture = setup(); assert.deepEqual(fixture.permission, { level: 'readwrite', path: '/observations' });
   const denied = fixture.response(); fixture.handler(fixture.request('Bearer signalk-readwrite-jwt', 'wrong-token'), denied); assert.equal(denied.state.status, 401);
-  const accepted = fixture.response(); fixture.handler(fixture.request('Bearer signalk-readwrite-jwt', 'local-ingress-token'), accepted); assert.equal(accepted.state.status, 202);
+  const accepted = fixture.response(); fixture.handler(fixture.request('Bearer signalk-readwrite-jwt', 'Bearer local-ingress-token'), accepted); assert.equal(accepted.state.status, 202);
   assert.equal(fixture.delta().updates[0].values[0].path, 'navigation.attitude.roll'); assert.equal(fixture.delta().updates[0].values[0].value, -Math.PI / 15);
 });
 test('CORS preflight permits only the browser headers needed by the protected POST', () => {
