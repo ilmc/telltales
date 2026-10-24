@@ -22,6 +22,14 @@ For an ordinary substantive change:
 
 Use the repository pull-request template. Keep the workflow tool-agnostic: use available GitHub, local Git, CI or other capable tooling without making one commercial bot a dependency.
 
+## Source readability and orientation
+
+For hand-maintained commentable text files, put a concise repository-relative path identifier first (for example `// src/app.mjs`). Use the file's native comment syntax and update the identifier when moving the file. Do not violate required shebangs, parsers, mandated file headers, or strict data formats; generated, vendored and binary files are exempt.
+
+Treat meaningful source subdirectories as independently navigable subprojects: add a local `README.md` explaining **why** the boundary exists, its design choices, constraints, invariants and trade-offs; include minimal pointers to entry points, interfaces and tests so readers can find the implementation. The code remains the authority for **what** it does, so do not restate functions or narrate file contents. Avoid duplicate governance or boilerplate for tiny, generated, or asset-only folders.
+
+Prefer readable, consistently formatted code, cohesive modules, explicit names and concise comments explaining _why_: contracts, units/reference frames, provenance, failure modes, trust boundaries, subtle lifecycle behaviour and trade-offs. Avoid obvious line-by-line narration and unnecessary boilerplate. The [engineering review](ENGINEERING-REVIEW.md) tracks the proposed formatter/linter rollout under [Issue #23](https://github.com/ilmc/telltales/issues/23); do not describe those tools as already enforced.
+
 ## Evidence and decisions
 
 Match validation to the change. Behavioural changes need relevant automated coverage and, where the claim crosses a browser, transport, hardware or real-world boundary, evidence at that boundary. Documentation-only work should still verify commands, links and claims against the current repository.
