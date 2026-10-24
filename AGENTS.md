@@ -24,7 +24,7 @@ Use the repository pull-request template. Keep the workflow tool-agnostic: use a
 
 ## Source readability and orientation
 
-For hand-maintained commentable text files, put a concise repository-relative path identifier first (for example `// telltales/src/app.mjs`). Use the file's native comment syntax and update the identifier when moving the file. Do not violate required shebangs, parsers, mandated file headers, or strict data formats; generated, vendored and binary files are exempt.
+For hand-maintained commentable text files, put a concise repository-relative path identifier first (for example `// src/app.mjs`). Use the file's native comment syntax and update the identifier when moving the file. Do not violate required shebangs, parsers, mandated file headers, or strict data formats; generated, vendored and binary files are exempt.
 
 Treat meaningful source subdirectories as independently navigable subprojects: add a local `README.md` explaining **why** the boundary exists, its design choices, constraints, invariants and trade-offs; include minimal pointers to entry points, interfaces and tests so readers can find the implementation. The code remains the authority for **what** it does, so do not restate functions or narrate file contents. Avoid duplicate governance or boilerplate for tiny, generated, or asset-only folders.
 
