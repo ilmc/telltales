@@ -1,3 +1,109 @@
 /* The full template has one primary SOG card and four deliberately smaller instruments. */
-.hud.hud-full{grid-template-columns:minmax(0,1.42fr) minmax(250px,.9fr) minmax(250px,.9fr);grid-template-rows:minmax(0,1fr) minmax(0,.82fr);grid-template-areas:"sog heel wind" "sog stw depth";gap:18px;padding:22px}.hud-full .hud-speed{grid-area:sog;grid-column:auto;grid-row:auto}.hud-full .hud-heel{grid-area:heel;grid-column:auto;grid-row:auto}.hud-full .hud-wind{grid-area:wind;grid-column:auto;grid-row:auto}.hud-full .hud-stw{grid-area:stw;grid-column:auto;grid-row:auto}.hud-full .hud-depth{grid-area:depth;grid-column:auto;grid-row:auto}.hud-full .hud-heel,.hud-full .hud-wind,.hud-full .hud-stw,.hud-full .hud-depth{min-height:0}.hud-full .heel-value{font-size:clamp(3.5rem,6vw,6rem);line-height:.85}.hud-full .heel-gauge{bottom:12%;height:10px}.hud-full .hud-wind .wind-speed{top:21%;font-size:clamp(2.6rem,4.2vw,4.6rem)}.hud-full .hud-wind .wind-dial{width:min(69%,220px);bottom:8%}.hud-full .hud-stw .speed-number{inset:0;font-size:clamp(3rem,4.5vw,4.5rem);line-height:.8}.hud-full .hud-stw .speed-history{inset:22% 7% 16%;width:86%;height:62%}.hud-full .hud-stw h2,.hud-full .hud-depth h2{top:16px;left:20px;font-size:clamp(.65rem,.85vw,.8rem)}.hud-full .hud-stw .status,.hud-full .hud-depth .status{bottom:12px;left:20px}.hud-full .depth-number{top:29%;left:20px;font-size:clamp(2.8rem,4vw,4rem);line-height:.85}.hud-full .depth-scale{right:14%;bottom:23%;height:42%}.hud-full .depth-reference{top:22%;right:10%;font-size:clamp(.48rem,.58vw,.58rem)}
-@media(max-width:1050px){.hud.hud-full{height:auto;min-height:100vh;overflow:auto;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,300px);grid-template-areas:"sog heel" "sog wind" "stw depth"}}@media(max-width:700px){.hud.hud-full{grid-template-columns:1fr;grid-template-rows:repeat(5,280px);grid-template-areas:"sog" "heel" "wind" "stw" "depth"}}
+.hud.hud-full {
+  grid-template-columns: minmax(0, 1.42fr) minmax(250px, 0.9fr) minmax(250px, 0.9fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 0.82fr);
+  grid-template-areas: 'sog heel wind' 'sog stw depth';
+  gap: 18px;
+  padding: 22px;
+}
+.hud-full .hud-speed {
+  grid-area: sog;
+  grid-column: auto;
+  grid-row: auto;
+}
+.hud-full .hud-heel {
+  grid-area: heel;
+  grid-column: auto;
+  grid-row: auto;
+}
+.hud-full .hud-wind {
+  grid-area: wind;
+  grid-column: auto;
+  grid-row: auto;
+}
+.hud-full .hud-stw {
+  grid-area: stw;
+  grid-column: auto;
+  grid-row: auto;
+}
+.hud-full .hud-depth {
+  grid-area: depth;
+  grid-column: auto;
+  grid-row: auto;
+}
+.hud-full .hud-heel,
+.hud-full .hud-wind,
+.hud-full .hud-stw,
+.hud-full .hud-depth {
+  min-height: 0;
+}
+.hud-full .heel-value {
+  font-size: clamp(3.5rem, 6vw, 6rem);
+  line-height: 0.85;
+}
+.hud-full .heel-gauge {
+  bottom: 12%;
+  height: 10px;
+}
+.hud-full .hud-wind .wind-speed {
+  top: 21%;
+  font-size: clamp(2.6rem, 4.2vw, 4.6rem);
+}
+.hud-full .hud-wind .wind-dial {
+  width: min(69%, 220px);
+  bottom: 8%;
+}
+.hud-full .hud-stw .speed-number {
+  inset: 0;
+  font-size: clamp(3rem, 4.5vw, 4.5rem);
+  line-height: 0.8;
+}
+.hud-full .hud-stw .speed-history {
+  inset: 22% 7% 16%;
+  width: 86%;
+  height: 62%;
+}
+.hud-full .hud-stw h2,
+.hud-full .hud-depth h2 {
+  top: 16px;
+  left: 20px;
+  font-size: clamp(0.65rem, 0.85vw, 0.8rem);
+}
+.hud-full .hud-stw .status,
+.hud-full .hud-depth .status {
+  bottom: 12px;
+  left: 20px;
+}
+.hud-full .depth-number {
+  top: 29%;
+  left: 20px;
+  font-size: clamp(2.8rem, 4vw, 4rem);
+  line-height: 0.85;
+}
+.hud-full .depth-scale {
+  right: 14%;
+  bottom: 23%;
+  height: 42%;
+}
+.hud-full .depth-reference {
+  top: 22%;
+  right: 10%;
+  font-size: clamp(0.48rem, 0.58vw, 0.58rem);
+}
+@media (max-width: 1050px) {
+  .hud.hud-full {
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(3, 300px);
+    grid-template-areas: 'sog heel' 'sog wind' 'stw depth';
+  }
+}
+@media (max-width: 700px) {
+  .hud.hud-full {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(5, 280px);
+    grid-template-areas: 'sog' 'heel' 'wind' 'stw' 'depth';
+  }
+}

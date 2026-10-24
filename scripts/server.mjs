@@ -1,8 +1,8 @@
-import {createReadStream} from 'node:fs';
-import {stat} from 'node:fs/promises';
-import {createServer} from 'node:http';
-import {extname, resolve, sep} from 'node:path';
-import {fileURLToPath, pathToFileURL} from 'node:url';
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
+import { createServer } from 'node:http';
+import { extname, resolve, sep } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 4173;
@@ -17,19 +17,19 @@ const CONTENT_TYPES = new Map([
   ['.mjs', 'text/javascript; charset=utf-8'],
   ['.png', 'image/png'],
   ['.svg', 'image/svg+xml; charset=utf-8'],
-  ['.webp', 'image/webp']
+  ['.webp', 'image/webp'],
 ]);
 
 function pathWithin(root, candidate) {
   return candidate === root || candidate.startsWith(`${root}${sep}`);
 }
 
-export function createStaticServer({root = DEFAULT_ROOT} = {}) {
+export function createStaticServer({ root = DEFAULT_ROOT } = {}) {
   const resolvedRoot = resolve(root);
 
   return createServer(async (request, response) => {
     if (request.method !== 'GET' && request.method !== 'HEAD') {
-      response.writeHead(405, {'allow': 'GET, HEAD'}).end('Method Not Allowed\n');
+      response.writeHead(405, { allow: 'GET, HEAD' }).end('Method Not Allowed\n');
       return;
     }
 
@@ -58,8 +58,9 @@ export function createStaticServer({root = DEFAULT_ROOT} = {}) {
     }
 
     response.writeHead(200, {
-      'content-type': CONTENT_TYPES.get(extname(filePath).toLowerCase()) ?? 'application/octet-stream',
-      'cache-control': 'no-store'
+      'content-type':
+        CONTENT_TYPES.get(extname(filePath).toLowerCase()) ?? 'application/octet-stream',
+      'cache-control': 'no-store',
     });
     if (request.method === 'HEAD') {
       response.end();

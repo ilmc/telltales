@@ -1,2 +1,15 @@
-import{readFileSync}from'node:fs';import{resolve}from'node:path';import{validateConfiguration,validateCapabilities}from'../src/core.mjs';import{validateBoatProfile}from'../src/boat-profile.mjs';
-const file=resolve(process.argv[2]||'config.json'),profile=resolve('examples/local-boat-profile.example.json');try{let c=validateConfiguration(JSON.parse(readFileSync(file,'utf8')));validateCapabilities(c);validateBoatProfile(JSON.parse(readFileSync(profile,'utf8')));console.log(`Configuration valid: ${file}\nBoat profile valid: ${profile}`)}catch(error){console.error(`Configuration invalid: ${file}\n${error.message}`);process.exitCode=1}
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { validateConfiguration, validateCapabilities } from '../src/core.mjs';
+import { validateBoatProfile } from '../src/boat-profile.mjs';
+const file = resolve(process.argv[2] || 'config.json'),
+  profile = resolve('examples/local-boat-profile.example.json');
+try {
+  let c = validateConfiguration(JSON.parse(readFileSync(file, 'utf8')));
+  validateCapabilities(c);
+  validateBoatProfile(JSON.parse(readFileSync(profile, 'utf8')));
+  console.log(`Configuration valid: ${file}\nBoat profile valid: ${profile}`);
+} catch (error) {
+  console.error(`Configuration invalid: ${file}\n${error.message}`);
+  process.exitCode = 1;
+}

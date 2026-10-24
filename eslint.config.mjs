@@ -17,7 +17,7 @@ export default [
   {
     files: ['**/*.mjs'],
     languageOptions: {
-      globals: {...globals.browser, ...globals.node},
+      globals: { ...globals.browser, ...globals.node },
       sourceType: 'module',
     },
     rules: defectRules,

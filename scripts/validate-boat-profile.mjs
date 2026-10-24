@@ -1,2 +1,11 @@
-import{readFileSync}from'node:fs';import{resolve}from'node:path';import{validateBoatProfile}from'../src/boat-profile.mjs';
-const file=resolve(process.argv[2]||'examples/local-boat-profile.example.json');try{validateBoatProfile(JSON.parse(readFileSync(file,'utf8')));console.log(`Boat profile valid: ${file}`)}catch(error){console.error(`Boat profile invalid: ${file}\n${error.message}`);process.exitCode=1}
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { validateBoatProfile } from '../src/boat-profile.mjs';
+const file = resolve(process.argv[2] || 'examples/local-boat-profile.example.json');
+try {
+  validateBoatProfile(JSON.parse(readFileSync(file, 'utf8')));
+  console.log(`Boat profile valid: ${file}`);
+} catch (error) {
+  console.error(`Boat profile invalid: ${file}\n${error.message}`);
+  process.exitCode = 1;
+}
