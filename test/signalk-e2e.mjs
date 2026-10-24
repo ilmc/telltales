@@ -17,7 +17,10 @@ async function request(url, {token, method = 'POST', body, headers = {}} = {}) {
 async function login(base, username, password) { const response = await request(`${base}/signalk/v1/auth/login`, {body: {username, password}}); assert.equal(response.status, 200, `login for ${username}: ${response.text}`); return JSON.parse(response.text).token; }
 function observation(value, extra = {}) { return {id: 'vessel.heel', unit: 'deg', value, observedAt: new Date().toISOString(), sourceId: 'e2e-synthetic-heel', valid: true, simulated: true, ...extra}; }
 
-const port = await freePort(), appPort = await freePort(), project = `telltales-e2e-${process.pid}-${Date.now()}`, base = `http://127.0.0.1:${port}`;
+const port = await freePort();
+let appPort = await freePort();
+while (appPort === port) appPort = await freePort();
+const project = `telltales-e2e-${process.pid}-${Date.now()}`, base = `http://127.0.0.1:${port}`;
 let app, browser, adminToken, readwriteToken, testError;
 try {
   await command('docker', ['compose', '-p', project, '-f', compose, 'up', '-d'], {env: {...process.env, SIGNALK_PORT: String(port)}});
