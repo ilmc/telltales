@@ -9,7 +9,7 @@ A meaningful subsystem directory should have its own README. It must primarily e
 
 ## File orientation
 
-For hand-maintained files that can legally begin with comments, the first line identifies the repository-relative name (for example `// telltales/src/app.mjs` or `<!-- telltales/CODE-STYLE.md -->`). Use the native syntax. Honour a mandated shebang, encoding signature or format header first; strict JSON, binary, generated and vendored files are exempt. Fix the identifier when moving a file.
+For hand-maintained files that can legally begin with comments, the first line identifies the repository-relative name (for example `// src/app.mjs` or `<!-- CODE-STYLE.md -->`). Use the native syntax. Honour a mandated shebang, encoding signature or format header first; strict JSON, binary, generated and vendored files are exempt. Fix the identifier when moving a file.
 
 ## Comments
 
