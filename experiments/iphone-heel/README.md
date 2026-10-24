@@ -6,6 +6,33 @@ This is a temporary local experiment in publishing **phone-relative inclination*
 
 The phone and its temporary producer carry no boat identity, location, route, or cloud service. The source is one paired foreground iPhone over local HTTPS/WSS; the existing Telltales HUD is a separate Signal K consumer. This preserves the repository's source/transport/presentation boundaries rather than adding a second display path.
 
+## Quickstart — existing local Signal K setup
+
+This is the shortest route **after** the Telltales observations plugin, producer/viewer Signal K identities, and iPhone certificate trust have been configured. It does not create or reset Signal K.
+
+```sh
+# First run, or after upgrading from the old repository-local settings:
+make iphone-heel-setup
+make iphone-heel-credentials-all   # Only once; enter existing Signal K logins and plugin ingress secret
+
+# Every experiment:
+make iphone-heel-start
+make iphone-heel-pairing-code      # Enter the six digits in iPhone Safari within five minutes
+
+# After using the phone and separate HUD:
+make iphone-heel-stop
+make iphone-heel-status
+
+# Verify a restart without relying on the original Terminal:
+make iphone-heel-start
+```
+
+On the iPhone open the HTTPS address printed by `iphone-heel-start`; on the computer use the HUD that it automatically opens. Enable motion, hold the supported mounting orientation, choose **Zero here**, and tilt the phone. The HUD should use the **token-free** URL `http://127.0.0.1:4173/?view=hud&template=sailing-hud&mode=signalk`. Verify changing `navigation.attitude.roll` in Signal K as well. If the HUD waits indefinitely but a manually token-authenticated HUD moves, this is an **unresolved local stream-proxy issue**, not proof that the iPhone sensor failed; do not put JWTs in URLs to work around it.
+
+The first real-device trial confirmed that iPhone motion reached Signal K and could drive the separate HUD using the older authenticated route. It also found reversed apparent lean direction and negative degree presentation. Those are **open orientation/presentation findings**, not calibrated physical acceptance. The goal is consistent port/starboard interpretation with a magnitude-only sailor-facing label; preserve Signal K signed radians internally. Record results in [the evidence template](EVIDENCE-TEMPLATE.md).
+
+The private local configuration lives at `$XDG_CONFIG_HOME/telltales/iphone-heel.json`, or `~/.config/telltales/iphone-heel.json` when XDG_CONFIG_HOME is unset. It contains credentials in a user-readable file protected by Unix permissions, **not** encrypted at rest. Never commit or share its contents. Use `make iphone-heel-credentials-producer`, `-viewer` or `-ingress` to replace only a missing/expired item; do not repeat setup unnecessarily.
+
 ## What this needs
 
 Use a fresh checkout on macOS or Linux with Node.js/npm, OpenSSL, `make`, and (for physical acceptance) a current Safari-capable iPhone. The host and iPhone must be on the same trusted LAN; do not attempt this over a public, hotel, or guest network. The host needs a local Signal K server with the `telltales-observations` plugin enabled. Follow [SIGNALK.md](../../SIGNALK.md) to keep the server bound to loopback: the phone producer reaches only the host's HTTPS port, while the producer talks to Signal K on its local loopback endpoint.
@@ -28,7 +55,7 @@ Before starting, arrange three separate credentials:
 - the plugin's distinct ingress bearer token, used only by the producer;
 - a Signal K **readonly** token only if the separate HUD's stream requires one.
 
-Do not put tokens in a repository file, shell history, screenshot, chat, or public URL. Supply the first two only in the producer terminal using a protected shell mechanism. For example, `read -rs SIGNALK_TOKEN` followed by `export SIGNALK_TOKEN` avoids displaying it; repeat for `SIGNALK_INGRESS_TOKEN`. Do not use shell `set -x`.
+Do not put tokens in a repository file, shell history, screenshot, chat, or public URL. Use the credential commands above to save them in the private local configuration; do not export them in Terminal sessions. Do not use shell `set -x` during credential setup.
 
 ## First-time preparation
 
