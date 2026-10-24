@@ -32,6 +32,7 @@ GitHub supports long lines but its line-oriented diffs and inline comments becom
 
 ## Source readability, structure and commentary (proposed; tracked in #23)
 - Prefer cohesive modules with explicit responsibility and names that communicate behaviour; splitting a module must follow a semantic boundary, not a raw line-count quota.
+- For hand-maintained text files whose grammar supports comments, start with a short, exact repository-relative project path/name identifier (for example `// telltales/src/app.mjs` or `# telltales/Makefile`). Keep it current after moves. Required shebangs, parsers, strict JSON, generated/vendor/binary files and formats whose leading content has mandated semantics take precedence; never invalidate a file solely to add the label.
 - Use consistent automatic formatting for human and AI review, avoiding compressed multi-statement lines. Formatter print width is a wrapping preference, not an absolute guarantee that every string or token fits.
 - Module-header comments should be brief and selective: state purpose, unusual dependencies, external contract or security/safety assumptions when those would not be clear from the filename and exports. Avoid repetitive boilerplate.
 - Comments should explain **why** a decision exists, trust/failure boundaries, invariants, units, frames, temporal semantics and subtle asynchronous lifecycle cases. Do not narrate obvious syntax or keep stale explanations.
