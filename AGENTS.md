@@ -22,6 +22,12 @@ For an ordinary substantive change:
 
 Use the repository pull-request template. Keep the workflow tool-agnostic: use available GitHub, local Git, CI or other capable tooling without making one commercial bot a dependency.
 
+## Source readability and orientation
+
+For hand-maintained commentable text files, put a concise repository-relative path identifier first (for example `// telltales/src/app.mjs`). Use the file's native comment syntax and update the identifier when moving the file. Do not violate required shebangs, parsers, mandated file headers, or strict data formats; generated, vendored and binary files are exempt.
+
+Prefer readable, consistently formatted code, cohesive modules, explicit names and concise comments explaining *why*: contracts, units/reference frames, provenance, failure modes, trust boundaries, subtle lifecycle behaviour and trade-offs. Avoid obvious line-by-line narration and unnecessary boilerplate. The [engineering review](ENGINEERING-REVIEW.md) tracks the proposed formatter/linter rollout under [Issue #23](https://github.com/ilmc/telltales/issues/23); do not describe those tools as already enforced.
+
 ## Evidence and decisions
 
 Match validation to the change. Behavioural changes need relevant automated coverage and, where the claim crosses a browser, transport, hardware or real-world boundary, evidence at that boundary. Documentation-only work should still verify commands, links and claims against the current repository.
