@@ -49,18 +49,6 @@ Documentation-only changes should still be checked against the current repositor
 
 Automated checks are evidence, not a substitute for review. Where repository settings enforce a check or review requirement, the project should describe it as enforced; where they do not, documentation must not imply that the gate exists. An implementing agent must not self-approve while describing that approval as independent review.
 
-## Three-party engineering acceptance
-
-The practical working team is an implementation AI agent (currently Codex), a critical review AI agent (currently ChatGPT), and the human repository maintainer. The roles are responsibilities, not dependencies on particular products: they can be reassigned.
-
-The implementing agent owns the change and supplies reproducible validation with an exact commit SHA. The reviewing agent challenges requirements, contracts, failure modes, security boundaries, diff scope and evidence. Where reviewer and author are genuinely separate, the reviewer may issue an independent technical approval. Automated tests and review bots are useful evidence, but do not independently grant merge authority.
-
-When an integrated change contains meaningful contributions from both available agents, neither may claim full authorship-independent approval. Record the overlap and any unresolved findings on the PR. The human maintainer may explicitly accept the disclosed reduction in reviewer independence **for that particular PR** after relevant checks and adversarial technical scrutiny; do not invent an independent approval or silently waive unresolved material risks. This exception is not permission to bypass validation or to elevate experimental navigation software to a trusted instrument.
-
-The human maintainer retains **decision authority** for merges and may delegate **execution** of an authorised merge to an AI agent through an explicit chat instruction, e.g. “merge PR #N”. A general instruction to proceed with development or an endorsement of the workflow does not by itself approve a particular merge. Before executing, the agent verifies the exact current PR head, required checks, review/exception record, and new risks; if acceptance conditions are unmet, it reports the blocker instead of merging. This is a process convention, not a claim that GitHub branch-protection settings enforce it.
-
-For mixed-authorship integration PR #29, the maintainer has endorsed this working model and a disclosed one-time review-independence exception, but the PR still requires an explicit merge instruction and current-head acceptance evidence. Closing superseded PRs and updating issue status should follow an authorised merge, not precede it.
-
 ## Changes to governance
 
 This governance model may evolve as the project earns a need for additional roles or process. Material governance changes should be public, explicit and consistent with [CONTRIBUTING.md](CONTRIBUTING.md). They should describe practice that actually exists rather than announcing structure in advance of need.
