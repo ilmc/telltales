@@ -26,10 +26,9 @@ Use the repository pull-request template. Keep the workflow tool-agnostic: use a
 
 For hand-maintained commentable text files, put a concise repository-relative path identifier first (for example `// telltales/src/app.mjs`). Use the file's native comment syntax and update the identifier when moving the file. Do not violate required shebangs, parsers, mandated file headers, or strict data formats; generated, vendored and binary files are exempt.
 
-Prefer readable, consistently formatted code, cohesive modules, explicit names and concise comments explaining *why*:
 Treat meaningful source subdirectories as independently navigable subprojects: add a local `README.md` describing responsibility, entry points, dependencies, interfaces and relevant tests, and link back to root-level contracts. Avoid duplicate governance or boilerplate for tiny, generated, or asset-only folders.
 
-Prefer readable, consistently formatted code, cohesive modules, explicit names and concise comments explaining *why*: contracts, units/reference frames, provenance, failure modes, trust boundaries, subtle lifecycle behaviour and trade-offs. Avoid obvious line-by-line narration and unnecessary boilerplate. The [engineering review](ENGINEERING-REVIEW.md) tracks the proposed formatter/linter rollout under [Issue #23](https://github.com/ilmc/telltales/issues/23); do not describe those tools as already enforced.
+Prefer readable, consistently formatted code, cohesive modules, explicit names and concise comments explaining *why*: Prefer readable, consistently formatted code, cohesive modules, explicit names and concise comments explaining *why*: contracts, units/reference frames, provenance, failure modes, trust boundaries, subtle lifecycle behaviour and trade-offs. Avoid obvious line-by-line narration and unnecessary boilerplate. The [engineering review](ENGINEERING-REVIEW.md) tracks the proposed formatter/linter rollout under [Issue #23](https://github.com/ilmc/telltales/issues/23); do not describe those tools as already enforced.
 
 ## Evidence and decisions
 
