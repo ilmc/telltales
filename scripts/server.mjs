@@ -81,13 +81,20 @@ export function attachSignalKStreamProxy(server, { stream, token }) {
   let activeClients = 0;
   server.on('upgrade', (request, socket, head) => {
     if (new URL(request.url, 'http://localhost').pathname !== '/local/signalk-stream') return;
-    if (request.headers.origin !== 'http://127.0.0.1:4173' || activeClients >= 2)
+    const origin = request.headers.origin,
+      expectedOrigin = new URL(`http://${request.headers.host}`);
+    if (
+      expectedOrigin.hostname !== DEFAULT_HOST ||
+      origin !== expectedOrigin.origin ||
+      activeClients >= 2
+    )
       return socket.destroy();
     clients.handleUpgrade(request, socket, head, (client) => {
       activeClients += 1;
       const upstreamUrl = new URL(stream);
       upstreamUrl.searchParams.set('token', token);
       const upstream = new WebSocket(upstreamUrl);
+      const pendingMessages = [];
       let closed = false;
       const close = () => {
         if (!closed) {
@@ -97,11 +104,14 @@ export function attachSignalKStreamProxy(server, { stream, token }) {
         if (client.readyState === client.OPEN) client.close();
         if (upstream.readyState === upstream.OPEN) upstream.close();
       };
-      client.on(
-        'message',
-        (message) => upstream.readyState === upstream.OPEN && upstream.send(message)
-      );
+      client.on('message', (message) => {
+        if (upstream.readyState === upstream.OPEN) upstream.send(message);
+        else pendingMessages.push(message);
+      });
       client.on('close', close);
+      upstream.on('open', () => {
+        for (const message of pendingMessages.splice(0)) upstream.send(message);
+      });
       upstream.on(
         'message',
         (message) => client.readyState === client.OPEN && client.send(message)

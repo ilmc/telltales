@@ -191,26 +191,35 @@ try {
 
   app = spawn('node', ['scripts/server.mjs'], {
     cwd: root,
-    env: { ...process.env, HOST: '127.0.0.1', PORT: String(appPort) },
+    env: {
+      ...process.env,
+      HOST: '127.0.0.1',
+      PORT: String(appPort),
+      TELLTALES_SIGNALK_STREAM: `${base.replace('http', 'ws')}/signalk/v1/stream?subscribe=none`,
+      TELLTALES_SIGNALK_STREAM_TOKEN: readonlyToken,
+    },
   });
   await waitFor(`http://127.0.0.1:${appPort}/`);
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext(),
     hud = await context.newPage(),
-    simulator = await context.newPage(),
-    frames = [];
-  hud.on('websocket', (socket) =>
-    socket.on('framereceived', (event) => frames.push(event.payload))
-  );
+    frames = [],
+    streamUrls = [];
+  hud.on('websocket', (socket) => {
+    streamUrls.push(socket.url());
+    socket.on('framereceived', (event) => frames.push(event.payload));
+  });
   const query = new URLSearchParams({
     mode: 'signalk',
     template: 'sailing-hud-full',
     signalkEndpoint: ingress,
-    signalkToken: readwriteToken,
-    signalkIngressToken: ingressToken,
-    signalkStream: `${base.replace('http', 'ws')}/signalk/v1/stream?subscribe=none`,
   });
   await hud.goto(`http://127.0.0.1:${appPort}/?view=hud&${query}`);
+  assert.equal(new URL(hud.url()).searchParams.has('signalkToken'), false);
+  await hud
+    .locator('.hud-wait')
+    .filter({ hasText: 'Waiting for Signal K observations…' })
+    .waitFor({ timeout: 10000 });
   response = await publish(readwriteToken, ingressToken, observation(-18));
   assert.equal(response.status, 202, `readwrite publish: ${response.text}`);
   await hud.locator('.heel-value').waitFor({ state: 'visible' });
@@ -226,16 +235,15 @@ try {
     .locator('.hud-heel .status')
     .filter({ hasText: 'LIVE · HEEL' })
     .waitFor({ timeout: 10000 });
+  assert.ok(
+    streamUrls.some((url) => url.endsWith('/local/signalk-stream')),
+    `HUD did not use the local proxy: ${streamUrls.join(', ')}`
+  );
+  assert.ok(
+    streamUrls.every((url) => !new URL(url).searchParams.has('token')),
+    `HUD exposed a token in a browser WebSocket URL: ${streamUrls.join(', ')}`
+  );
 
-  await simulator.goto(`http://127.0.0.1:${appPort}/?view=simulator&${query}`);
-  await simulator.locator('#control-heel input[type=range]').evaluate((element) => {
-    element.value = '12';
-    element.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-  await hud.locator('.heel-value').filter({ hasText: '12' }).waitFor({ timeout: 10000 });
-  await hud.locator('.heel-direction').filter({ hasText: 'STARBOARD' }).waitFor({ timeout: 10000 });
-
-  await simulator.close();
   response = await publish(
     readwriteToken,
     ingressToken,

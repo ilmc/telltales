@@ -1,3 +1,4 @@
+// src/app.mjs
 import {
   validateConfiguration,
   createSource,
@@ -84,7 +85,9 @@ function hud(c) {
     ch = signalK ? null : new BroadcastChannel(TRANSPORT_CHANNEL),
     state = {},
     hist = {};
-  document.body.innerHTML = `<main class="hud ${has('primary-wind') ? 'hud-with-wind' : ''} ${has('primary-depth') || has('primary-stw') ? 'hud-full' : ''}"><section class="hud-speed speed-widget" data-id="vessel.speedOverGround"><h2>Speed over ground (SOG)</h2><svg class="speed-history" viewBox="0 0 100 40" preserveAspectRatio="none"><path/></svg><div class="speed-number">—<small> kn</small></div><p class="status bad">AWAITING SIMULATOR</p></section><section class="hud-heel"><h2>Heel</h2><div><div class="heel-value">—<small>°</small></div><div class="heel-direction">AWAITING DATA</div></div><div class="heel-gauge"><i class="heel-pointer"></i></div><p class="status bad">AWAITING SIMULATOR</p></section>${has('primary-wind') ? `<section class="hud-wind mode-${windMode}"><h2>Apparent wind</h2><div class="wind-speed">—<small> kn</small></div><div class="wind-dial"><b class="bow">BOW<br>0°</b><b class="port">PORT<br>−</b><b class="starboard">STARBOARD<br>+</b><i class="wind-pointer"></i><span class="wind-angle">—</span></div><p class="status bad">AWAITING WIND</p></section>` : ''}${has('primary-stw') ? `<section class="hud-stw speed-widget" data-id="vessel.speedThroughWater"><h2>Speed through water (STW)</h2><svg class="speed-history" viewBox="0 0 100 40" preserveAspectRatio="none"><path/></svg><div class="speed-number">—<small> kn</small></div><p class="status bad">AWAITING STW</p></section>` : ''}${has('primary-depth') ? `<section class="hud-depth"><h2>Depth</h2><div class="depth-number">—<small> m</small></div><div class="depth-scale"><i></i></div><p class="depth-reference">${ws['primary-depth'].props.referenceLabel}</p><p class="status bad">AWAITING DEPTH</p></section>` : ''}<div class="hud-wait">Waiting for the simulator publisher…</div></main>`;
+  let sourceLabel = signalK ? 'SIGNAL K' : 'SIMULATOR',
+    waitingLabel = signalK ? 'Signal K observations' : 'the simulator publisher';
+  document.body.innerHTML = `<main class="hud ${has('primary-wind') ? 'hud-with-wind' : ''} ${has('primary-depth') || has('primary-stw') ? 'hud-full' : ''}"><section class="hud-speed speed-widget" data-id="vessel.speedOverGround"><h2>Speed over ground (SOG)</h2><svg class="speed-history" viewBox="0 0 100 40" preserveAspectRatio="none"><path/></svg><div class="speed-number">—<small> kn</small></div><p class="status bad">AWAITING ${sourceLabel}</p></section><section class="hud-heel"><h2>Heel</h2><div><div class="heel-value">—<small>°</small></div><div class="heel-direction">AWAITING DATA</div></div><div class="heel-gauge"><i class="heel-pointer"></i></div><p class="status bad">AWAITING ${sourceLabel}</p></section>${has('primary-wind') ? `<section class="hud-wind mode-${windMode}"><h2>Apparent wind</h2><div class="wind-speed">—<small> kn</small></div><div class="wind-dial"><b class="bow">BOW<br>0°</b><b class="port">PORT<br>−</b><b class="starboard">STARBOARD<br>+</b><i class="wind-pointer"></i><span class="wind-angle">—</span></div><p class="status bad">AWAITING WIND</p></section>` : ''}${has('primary-stw') ? `<section class="hud-stw speed-widget" data-id="vessel.speedThroughWater"><h2>Speed through water (STW)</h2><svg class="speed-history" viewBox="0 0 100 40" preserveAspectRatio="none"><path/></svg><div class="speed-number">—<small> kn</small></div><p class="status bad">AWAITING STW</p></section>` : ''}${has('primary-depth') ? `<section class="hud-depth"><h2>Depth</h2><div class="depth-number">—<small> m</small></div><div class="depth-scale"><i></i></div><p class="depth-reference">${ws['primary-depth'].props.referenceLabel}</p><p class="status bad">AWAITING DEPTH</p></section>` : ''}<div class="hud-wait">Waiting for ${waitingLabel}…</div></main>`;
   let ok = (x) => x?.status.ok,
     speed = (id, label) => {
       let x = state[id],
@@ -202,7 +205,7 @@ function hud(c) {
         'http://localhost:3000/plugins/telltales-observations/observations',
       stream =
         q.get('signalkStream') ||
-        (location.host === '127.0.0.1:4173'
+        (location.hostname === '127.0.0.1' && !q.get('signalkToken')
           ? `${location.origin.replace(/^http/, 'ws')}/local/signalk-stream`
           : endpoint
               .replace(/^http/, 'ws')
