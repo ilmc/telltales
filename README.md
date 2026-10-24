@@ -98,9 +98,12 @@ npm run validate:config
 npm test
 npx playwright install chromium
 npm run test:browser
+npm run test:signalk:e2e
 ```
 
 GitHub Actions runs configuration validation plus the Node and Chromium suites on pushes and pull requests. Browser tests exercise the two-window transport, replay, unavailable states and reference-size HUD behaviour. Routine repository changes are expected to start from a tracked issue, use an issue-linked branch, and arrive through a pull request for review rather than being committed directly to `main`; see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+`npm run test:signalk:e2e` additionally requires Docker and Chromium. It starts a pinned, disposable Signal K server on a free loopback port, enables server security through its supported API, creates temporary `readwrite` and `readonly` identities, logs in to obtain JWTs, configures the plugin’s separate ingress secret, and removes users and the Docker volume afterwards. It uses synthetic observations only. It is intentionally slower than the ordinary browser suite because it verifies the 30-second stale-reading expiry.
 
 ## Direction, not roadmap
 

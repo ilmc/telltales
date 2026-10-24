@@ -23,6 +23,16 @@ The plugin accepts only `POST /plugins/telltales-observations/observations` from
 
 Angles are bow-relative: zero ahead, negative port, positive starboard. Signal K's relative angular convention is radians with positive starboard/clockwise, so no sign inversion is applied. There is no standard Signal K depth path for an unknown datum; the explicit Telltales extension prevents falsely asserting surface, transducer, or keel reference.
 
-Each delta carries the original observation timestamp, a `telltales:<sourceId>` source label, and an adjacent `telltales.observationMeta.*` extension containing validity, simulated/replay state and provenance. Thus simulation remains labelled simulation after the round trip. External values without this metadata are labelled external Signal K observations. The HUD asks for `vessels.self` and rejects a delta whose context is not exactly `vessels.self`, even when an explicitly configured stream is broad. Malformed, stale, and out-of-order values are rejected; either a native `null` or invalid metadata clears the HUD rather than retaining a prior reading. Signal K server disconnects mark every HUD reading unavailable.
+Each delta carries the original observation timestamp, a `telltales:<sourceId>` source label, and an adjacent `telltales.observationMeta.*` extension containing validity, simulated/replay state and provenance. Thus simulation remains labelled simulation after the round trip. External values without this metadata are labelled external Signal K observations. The HUD subscribes as `vessels.self`; it accepts only that alias or the concrete self-vessel context announced by the server, and rejects every foreign-vessel context. Malformed, stale, and out-of-order values are rejected; either a native `null` or invalid metadata clears the HUD rather than retaining a prior reading. Signal K server disconnects mark every HUD reading unavailable.
+
+## Real-server integration check
+
+With Docker and Chromium installed, run:
+
+```sh
+npm run test:signalk:e2e
+```
+
+The test is self-contained: it picks a free loopback port, starts the pinned image, provisions temporary admin, `readwrite`, and `readonly` users through Signal K’s supported security endpoints, logs in through `/signalk/v1/auth/login`, configures a distinct plugin token, and tears down users, containers, volumes, and generated credentials. It proves real `readwrite` publication, authorization/token rejections, signed heel conversion and display, explicit invalidation, stale-data expiry, and self-vessel isolation. It does not contact an external Signal K server or use vessel data.
 
 Replay publishes its original observation timestamps and provenance. Seeking backwards emits invalidation/current state through the same route; a server-side historical cache may still need clearing when experimenting with old recordings. Physical sources may later publish their own standard Signal K paths and replace this simulator plugin; no hardware, SeaTalk, actuator, or cloud path is included.
