@@ -58,8 +58,10 @@ test('newer private profile selection wins over delayed earlier file read',async
 });
 test('mandatory missing inputs disable private display selection',async({page})=>{
   await page.goto('/?view=private-setup');
-  const profile=await page.request.get('/examples/local-boat-profile.example.json').then(r=>r.text());
-  await page.getByLabel('Choose local boat profile').setInputFiles({name:'profile.json',mimeType:'application/json',buffer:Buffer.from(profile)});
+  const profile=await page.request.get('/examples/local-boat-profile.example.json').then(r=>r.json());
+  profile.sensorGroup.bindings=profile.sensorGroup.bindings.filter(x=>x.id!=='depth');
+  profile.providers[0].channels=profile.providers[0].channels.filter(x=>x.id!=='depth-transducer');
+  await page.getByLabel('Choose local boat profile').setInputFiles({name:'heel-only.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(profile))});
   await expect(page.getByRole('status')).toContainText('validated');
   const incompatible=page.locator('[data-template="rich-instruments"]');
   await expect(incompatible.locator('.compatibility')).toContainText('INCOMPATIBLE');
