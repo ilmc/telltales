@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import {
   createPairingCode,
-  hudLaunchDecision,
+  serviceLaunchDecision,
   readConfig,
   setupDecision,
   validateConfig,
@@ -79,8 +79,8 @@ test('pairing code uses an injected cryptographic integer source and retains six
   );
 });
 
-test('HUD lifecycle reuses only a recorded experiment server and refuses unknown owners', () => {
-  assert.equal(hudLaunchDecision({ occupied: false, owned: false }), 'start');
-  assert.equal(hudLaunchDecision({ occupied: true, owned: true }), 'reuse');
-  assert.equal(hudLaunchDecision({ occupied: true, owned: false }), 'refuse');
+test('service lifecycle reuses only a recorded experiment server and refuses unknown owners', () => {
+  assert.equal(serviceLaunchDecision({ occupied: false, owned: false }), 'start');
+  assert.equal(serviceLaunchDecision({ occupied: true, owned: true }), 'reuse');
+  assert.equal(serviceLaunchDecision({ occupied: true, owned: false }), 'refuse');
 });

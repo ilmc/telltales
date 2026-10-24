@@ -165,7 +165,7 @@ function requiredSecret(name) {
   }
 }
 export const createPairingCode = (random = randomInt) => `${random(1_000_000)}`.padStart(6, '0');
-export function hudLaunchDecision({ occupied, owned }) {
+export function serviceLaunchDecision({ occupied, owned }) {
   if (!occupied) return 'start';
   return owned ? 'reuse' : 'refuse';
 }
@@ -186,11 +186,19 @@ function openHud() {
     stdio: 'ignore',
   }).unref();
 }
-async function run(role) {
+async function run(role, { background = false } = {}) {
   const config = await readConfig(),
     env = { ...process.env, TELLTALES_SERVER_HOST: config.host };
   let command;
   if (role === 'producer') {
+    const decision = serviceLaunchDecision({
+      occupied: await portOpen(8443),
+      owned: await ownedProcess('producer'),
+    });
+    if (decision === 'reuse')
+      return console.log('Reusing the existing experiment-owned phone producer.');
+    if (decision === 'refuse')
+      throw Error('port 8443 is occupied by a non-experiment service; it was left untouched.');
     env.SIGNALK_TOKEN = requiredSecret('producer');
     env.SIGNALK_INGRESS_TOKEN = requiredSecret('ingress');
     env.SIGNALK_INGRESS = config.signalkIngress;
@@ -199,7 +207,7 @@ async function run(role) {
     env.IPHONE_HEEL_PAIRING_CODE = pairing;
     command = ['node', 'experiments/iphone-heel/server.mjs'];
   } else {
-    const decision = hudLaunchDecision({
+    const decision = serviceLaunchDecision({
       occupied: await portOpen(4173),
       owned: await ownedProcess('hud'),
     });
@@ -216,15 +224,21 @@ async function run(role) {
     env.TELLTALES_SIGNALK_STREAM_TOKEN = requiredSecret('viewer');
     command = ['node', 'scripts/server.mjs'];
   }
-  const child = spawn(command[0], command.slice(1), { cwd: root, env, stdio: 'inherit' }),
+  const child = spawn(command[0], command.slice(1), {
+      cwd: root,
+      detached: background,
+      env,
+      stdio: background ? 'ignore' : 'inherit',
+    }),
     clear = () => role === 'producer' && deleteSecret('pairing');
   await register(role, child.pid);
+  if (background) child.unref();
   if (role === 'hud') {
     for (let tries = 0; tries < 20 && !(await portOpen(4173)); tries += 1)
       await new Promise((resolve) => setTimeout(resolve, 50));
     if (await portOpen(4173)) openHud();
   }
-  for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP'])
+  for (const signal of background ? [] : ['SIGINT', 'SIGTERM', 'SIGHUP'])
     process.on(signal, () => {
       child.kill(signal);
       clear();
@@ -234,6 +248,20 @@ async function run(role) {
     await unregister(role);
     process.exitCode = code ?? (signal ? 1 : 0);
   });
+}
+async function start() {
+  const config = await readConfig();
+  if (!(await portOpen(Number(new URL(config.signalkIngress).port || 80))))
+    throw Error(
+      'Signal K is not responding on its saved loopback endpoint; it was not started or changed.'
+    );
+  for (const name of ['producer', 'ingress', 'viewer']) requiredSecret(name);
+  await run('producer', { background: true });
+  await run('hud', { background: true });
+  console.log(
+    `Phone: https://${config.host}:8443/ — enter the current six-digit code from: make iphone-heel-pairing-code`
+  );
+  console.log('HUD opened at http://127.0.0.1:4173/?view=hud&template=sailing-hud&mode=signalk');
 }
 async function status() {
   const state = await readState(),
@@ -309,9 +337,13 @@ async function main() {
   } else if (command === 'pairing-code') console.log(requiredSecret('pairing'));
   else if (command === 'host') console.log((await readConfig()).host);
   else if (command === 'producer' || command === 'hud') await run(command);
+  else if (command === 'start') await start();
   else if (command === 'status') await status();
   else if (command === 'stop') await stop();
-  else throw Error('usage: iphone-heel-local.mjs setup|save-secret|pairing-code|producer|hud');
+  else
+    throw Error(
+      'usage: iphone-heel-local.mjs setup|save-secret|pairing-code|producer|hud|start|status|stop'
+    );
 }
 if (process.argv[1] === fileURLToPath(import.meta.url))
   main().catch((error) => {

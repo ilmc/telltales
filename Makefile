@@ -2,7 +2,7 @@
 
 .PHONY: help test tests end-to-end-tests tests-e2e local-server-cert iphone-heel-setup iphone-heel \
 	iphone-heel-hud iphone-heel-credentials iphone-heel-pairing-code iphone-heel-test iphone-heel-e2e \
-	iphone-heel-status iphone-heel-stop
+	iphone-heel-status iphone-heel-stop iphone-heel-start
 
 TELLTALES_SERVER_CERT_DIR ?= .local/certs
 IPHONE_HEEL_PAIRING_FILE ?= .local/iphone-heel-pairing.env
@@ -17,6 +17,7 @@ help:
 	  '                           Save/reuse non-secret local settings and TLS identity' \
 	  'make iphone-heel-credentials Store producer/viewer credentials in macOS Keychain' \
 	  'make iphone-heel           Run paired iPhone producer from any Terminal' \
+	  'make iphone-heel-start     Start/reuse phone producer and authenticated HUD' \
 	  'make iphone-heel-pairing-code Privately reveal the current short pairing code' \
 	  'make iphone-heel-hud       Run the separate authenticated local HUD server' \
 	  'make iphone-heel-status    Report local setup and experiment-owned processes' \
@@ -52,6 +53,10 @@ iphone-heel-credentials:
 iphone-heel:
 	@test -r "$(TELLTALES_SERVER_CERT_DIR)/telltales-server.key" || { echo 'run make iphone-heel-setup TELLTALES_SERVER_HOST=… first' >&2; exit 2; }
 	@TELLTALES_SERVER_CERT_DIR="$(TELLTALES_SERVER_CERT_DIR)" node scripts/iphone-heel-local.mjs producer
+
+iphone-heel-start:
+	@test -r "$(TELLTALES_SERVER_CERT_DIR)/telltales-server.key" || { echo 'run make iphone-heel-setup first' >&2; exit 2; }
+	@TELLTALES_SERVER_CERT_DIR="$(TELLTALES_SERVER_CERT_DIR)" node scripts/iphone-heel-local.mjs start
 
 iphone-heel-pairing-code:
 	@node scripts/iphone-heel-local.mjs pairing-code
