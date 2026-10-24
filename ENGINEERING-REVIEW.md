@@ -20,7 +20,11 @@ Examined public README, AGENTS, CONTRIBUTING, GOVERNANCE, package and Makefile s
 
 Retain this stack unless evidence from a concrete feature warrants a change; avoid speculative frameworks or wholesale TypeScript migration.
 
-## Prioritised findings (unresolved until separately evidenced)
+## Integration status (24 October 2026)
+
+The original findings below are dated baseline observations, not a live claim that every fault persists. The integrated acceptance candidate (PR #29) adds dynamic ports, cleanup failure aggregation, bounded application shutdown, and formatter/lint enforcement. Codex reported the Node/browser/real Signal K suites passing, while GitHub Actions independently confirmed core/browser success on commit `9dc497ead088e27a4a4cd05ebabb54e6746ceb00`. This is **candidate evidence** pending independent acceptance and final-head validation, not a finding closed on `main`. Credential exposure remains open as Issue #27. See Issue #20 for exact evidence and later status transitions.
+
+## Prioritised findings (original baseline; revisit with evidence)
 
 | Priority | Finding and evidence                                                                                                                                                                          | Proposed correction                                                                                                                                                 | Completion evidence                                                                                                                              |
 | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
