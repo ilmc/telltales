@@ -8,7 +8,15 @@ The phone and its temporary producer carry no boat identity, location, route, or
 
 ## What this needs
 
-Use a fresh checkout on a Mac with Node.js/npm, OpenSSL, `make`, and a current Safari-capable iPhone. The Mac and iPhone must be on the same trusted LAN; do not attempt this over a public, hotel, or guest network. The Mac needs a local Signal K server with the `telltales-observations` plugin enabled. Follow [SIGNALK.md](../../SIGNALK.md) to keep the server bound to loopback: the phone producer reaches only the Mac's HTTPS port, while the producer talks to Signal K on its local loopback endpoint.
+Use a fresh checkout on a Mac with Node.js/npm, OpenSSL, `make`, macOS Keychain, and a current Safari-capable iPhone. The Mac and iPhone must be on the same trusted LAN; do not attempt this over a public, hotel, or guest network. The Mac needs a local Signal K server with the `telltales-observations` plugin enabled. Follow [SIGNALK.md](../../SIGNALK.md) to keep the server bound to loopback: the phone producer reaches only the Mac's HTTPS port, while the producer talks to Signal K on its local loopback endpoint.
+
+## Repeatable local workflow
+
+Run `make iphone-heel-setup` once. The small wizard reuses a previously saved LAN host, or detects the only suitable Mac LAN address; if several addresses are available, choose explicitly with `make iphone-heel-setup TELLTALES_SERVER_HOST=…`. It records only that host and loopback Signal K endpoints in ignored, mode-600 `.local/iphone-heel.json`; it rechecks the existing certificate, Signal K reachability, and port 4173 without stopping or altering any service.
+
+Run `make iphone-heel-credentials` only for first provisioning or after a Signal K credential is revoked or expires. It asks without echoing and stores the separate readwrite, plugin-ingress, and readonly credentials in macOS Keychain. They are never stored in `.local`, environment setup files, URLs, or shell history. The one-command normal path from any new Terminal is then `make iphone-heel`, followed by `make iphone-heel-hud` on the HUD screen. The HUD URL is printed without a token: its loopback server reads the readonly token from Keychain and proxies only the Signal K stream to the same-origin browser.
+
+`make iphone-heel-pairing-code` privately prints the active six-digit code from Keychain while the producer is running. `make iphone-heel-status` reports saved setup, port reachability, and recorded experiment-owned processes; `make iphone-heel-stop` sends SIGTERM only to processes started by these launchers. A process occupying port 4173 but not recorded as experiment-owned is left untouched and produces a clear diagnostic rather than an `EADDRINUSE` crash. These commands do not create, reset, stop, or weaken Signal K.
 
 Before starting, arrange three separate credentials:
 

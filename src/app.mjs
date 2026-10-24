@@ -202,12 +202,14 @@ function hud(c) {
         'http://localhost:3000/plugins/telltales-observations/observations',
       stream =
         q.get('signalkStream') ||
-        endpoint
-          .replace(/^http/, 'ws')
-          .replace(
-            '/plugins/telltales-observations/observations',
-            '/signalk/v1/stream?subscribe=none'
-          ),
+        (location.host === '127.0.0.1:4173'
+          ? `${location.origin.replace(/^http/, 'ws')}/local/signalk-stream`
+          : endpoint
+              .replace(/^http/, 'ws')
+              .replace(
+                '/plugins/telltales-observations/observations',
+                '/signalk/v1/stream?subscribe=none'
+              )),
       streamUrl = new URL(stream),
       streamToken = q.get('signalkToken');
     if (streamToken && !streamUrl.searchParams.has('token'))

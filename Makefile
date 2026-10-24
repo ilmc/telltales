@@ -1,7 +1,8 @@
 # Makefile
 
 .PHONY: help test tests end-to-end-tests tests-e2e local-server-cert iphone-heel-setup iphone-heel \
-	iphone-heel-hud iphone-heel-test iphone-heel-e2e
+	iphone-heel-hud iphone-heel-credentials iphone-heel-pairing-code iphone-heel-test iphone-heel-e2e \
+	iphone-heel-status iphone-heel-stop
 
 TELLTALES_SERVER_CERT_DIR ?= .local/certs
 IPHONE_HEEL_PAIRING_FILE ?= .local/iphone-heel-pairing.env
@@ -13,9 +14,13 @@ help:
 	  'make local-server-cert TELLTALES_SERVER_HOST=host-or-ip' \
 	  '                           Prepare/reuse a trusted local Telltales server identity' \
 	  'make iphone-heel-setup TELLTALES_SERVER_HOST=host-or-ip' \
-	  '                           Prepare/reuse TLS identity for the iPhone experiment' \
-	  'make iphone-heel           Run paired iPhone producer (tokens required; private 6-digit code)' \
-	  'make iphone-heel-hud       Run the separate local Telltales HUD server' \
+	  '                           Save/reuse non-secret local settings and TLS identity' \
+	  'make iphone-heel-credentials Store producer/viewer credentials in macOS Keychain' \
+	  'make iphone-heel           Run paired iPhone producer from any Terminal' \
+	  'make iphone-heel-pairing-code Privately reveal the current short pairing code' \
+	  'make iphone-heel-hud       Run the separate authenticated local HUD server' \
+	  'make iphone-heel-status    Report local setup and experiment-owned processes' \
+	  'make iphone-heel-stop      Stop only recorded experiment-owned processes' \
 	  'make iphone-heel-test      Focused iPhone heel unit/lifecycle tests' \
 	  'make iphone-heel-e2e       Disposable Docker Signal K E2E (not a phone test)'
 
@@ -35,25 +40,32 @@ local-server-cert:
 	@test -n "$(TELLTALES_SERVER_HOST)" || { echo 'set TELLTALES_SERVER_HOST to the Mac LAN hostname or IP' >&2; exit 2; }
 	@sh scripts/prepare-local-server-certificate.sh "$(TELLTALES_SERVER_HOST)" "$(TELLTALES_SERVER_CERT_DIR)"
 
-iphone-heel-setup: local-server-cert
+iphone-heel-setup:
+	@node scripts/iphone-heel-local.mjs setup "$(TELLTALES_SERVER_HOST)"
+	@sh scripts/prepare-local-server-certificate.sh "$$(node scripts/iphone-heel-local.mjs host)" "$(TELLTALES_SERVER_CERT_DIR)"
 	@sh scripts/check-signalk-iphone-heel-setup.sh
-	@printf '%s\n' 'TLS identity is ready. iphone-heel creates a new private six-digit pairing code for each launch.'
+	@printf '%s\n' 'TLS identity is ready. Next: make iphone-heel-credentials (once or after expiry/revocation).'
+
+iphone-heel-credentials:
+	@sh scripts/iphone-heel-credentials.sh
 
 iphone-heel:
 	@test -r "$(TELLTALES_SERVER_CERT_DIR)/telltales-server.key" || { echo 'run make iphone-heel-setup TELLTALES_SERVER_HOST=… first' >&2; exit 2; }
-	@mkdir -p .local
-	@umask 077; printf 'IPHONE_HEEL_PAIRING_CODE=%s\n' "$$(node -e "process.stdout.write(require('node:crypto').randomInt(1000000).toString().padStart(6, '0'))")" > "$(IPHONE_HEEL_PAIRING_FILE)"; \
-	  trap 'rm -f "$(IPHONE_HEEL_PAIRING_FILE)"' EXIT HUP INT TERM; \
-	  set -a; . "$(IPHONE_HEEL_PAIRING_FILE)"; set +a; \
-	  : "$${SIGNALK_TOKEN:?set a readwrite Signal K token in this terminal}"; \
-	  : "$${SIGNALK_INGRESS_TOKEN:?set the separate plugin ingress token in this terminal}"; \
-	  TELLTALES_SERVER_CERT_DIR="$(TELLTALES_SERVER_CERT_DIR)" npm run iphone-heel
+	@TELLTALES_SERVER_CERT_DIR="$(TELLTALES_SERVER_CERT_DIR)" node scripts/iphone-heel-local.mjs producer
+
+iphone-heel-pairing-code:
+	@node scripts/iphone-heel-local.mjs pairing-code
+
+iphone-heel-status:
+	@node scripts/iphone-heel-local.mjs status
+
+iphone-heel-stop:
+	@node scripts/iphone-heel-local.mjs stop
 
 iphone-heel-hud:
-	@printf '%s\n' 'HUD server starts at http://127.0.0.1:4173.' \
-	  'Open a separate screen with ?view=hud&template=sailing-hud&mode=signalk.' \
-	  'If your Signal K server requires stream authentication, append a short-lived readonly signalkToken locally; do not save or share that URL.'
-	npm start
+	@printf '%s\n' 'HUD: http://127.0.0.1:4173/?view=hud&template=sailing-hud&mode=signalk' \
+	  'A local same-origin stream proxy uses the Keychain credential; no token is in this URL.'
+	@node scripts/iphone-heel-local.mjs hud
 
 iphone-heel-test:
 	node --test test/iphone-heel-orientation.test.mjs test/iphone-heel-auth.test.mjs test/iphone-heel-producer.test.mjs test/local-server-certificate.test.mjs

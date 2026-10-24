@@ -3,6 +3,7 @@ import { stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import WebSocket, { WebSocketServer } from 'ws';
 
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 4173;
@@ -70,6 +71,37 @@ export function createStaticServer({ root = DEFAULT_ROOT } = {}) {
   });
 }
 
+// The viewer browser never receives a Signal K bearer token. This loopback-only
+// bridge is enabled only by the iPhone launcher, which reads that token from
+// Keychain into this process environment.
+export function attachSignalKStreamProxy(server, { stream, token }) {
+  if (!stream || !token) return;
+  const clients = new WebSocketServer({ noServer: true });
+  server.on('upgrade', (request, socket, head) => {
+    if (new URL(request.url, 'http://localhost').pathname !== '/local/signalk-stream') return;
+    clients.handleUpgrade(request, socket, head, (client) => {
+      const upstreamUrl = new URL(stream);
+      upstreamUrl.searchParams.set('token', token);
+      const upstream = new WebSocket(upstreamUrl);
+      const close = () => {
+        if (client.readyState === client.OPEN) client.close();
+        if (upstream.readyState === upstream.OPEN) upstream.close();
+      };
+      client.on(
+        'message',
+        (message) => upstream.readyState === upstream.OPEN && upstream.send(message)
+      );
+      client.on('close', close);
+      upstream.on(
+        'message',
+        (message) => client.readyState === client.OPEN && client.send(message)
+      );
+      upstream.on('close', close);
+      upstream.on('error', close);
+    });
+  });
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const host = process.env.HOST ?? DEFAULT_HOST;
   const port = Number.parseInt(process.env.PORT ?? `${DEFAULT_PORT}`, 10);
@@ -77,6 +109,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     throw new Error(`Invalid PORT: ${process.env.PORT}`);
   }
   const server = createStaticServer();
+  attachSignalKStreamProxy(server, {
+    stream: process.env.TELLTALES_SIGNALK_STREAM,
+    token: process.env.TELLTALES_SIGNALK_STREAM_TOKEN,
+  });
   server.listen(port, host, () => {
     console.log(`Telltales development server: http://${host}:${port}`);
   });
