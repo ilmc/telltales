@@ -1,3 +1,4 @@
+// test/signalk-e2e.mjs
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
@@ -6,6 +7,7 @@ import { chromium } from '@playwright/test';
 const root = new URL('..', import.meta.url).pathname;
 const compose = new URL('../docker-compose.signalk.yml', import.meta.url).pathname;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const shutdownTimeoutMs = 10_000;
 const command = (file, args, options = {}) =>
   new Promise((resolve, reject) => {
     const child = spawn(file, args, { cwd: root, ...options }),
@@ -25,6 +27,30 @@ async function freePort() {
   const { port } = server.address();
   await new Promise((resolve) => server.close(resolve));
   return port;
+}
+async function stopApplication(child) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      child.off('exit', onExit);
+      child.off('error', onError);
+      reject(Error(`application did not exit within ${shutdownTimeoutMs}ms after SIGTERM`));
+    }, shutdownTimeoutMs);
+    const onExit = () => {
+      clearTimeout(timer);
+      child.off('error', onError);
+      resolve();
+    };
+    const onError = (error) => {
+      clearTimeout(timer);
+      child.off('exit', onExit);
+      reject(error);
+    };
+    child.once('exit', onExit);
+    child.once('error', onError);
+    child.kill('SIGTERM');
+  });
 }
 async function waitFor(url) {
   let last;
@@ -256,12 +282,7 @@ try {
   }
   if (app && app.exitCode === null && app.signalCode === null) {
     try {
-      const exited = new Promise((resolve, reject) => {
-        app.once('exit', resolve);
-        app.once('error', reject);
-      });
-      app.kill('SIGTERM');
-      await exited;
+      await stopApplication(app);
     } catch (error) {
       cleanupErrors.push(error);
     }
